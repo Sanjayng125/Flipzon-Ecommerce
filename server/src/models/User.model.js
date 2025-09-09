@@ -18,8 +18,15 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     avatar: {
-      type: String,
-      default: "",
+      public_id: {
+        type: String,
+        default: null,
+      },
+      url: {
+        type: String,
+        default:
+          "https://res.cloudinary.com/dnugvoy3m/image/upload/v1742375376/flipzon-ecommerce/defaults/default-profile_ggqrh6.png",
+      },
     },
     role: {
       type: String,
@@ -30,42 +37,34 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    addresses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Address",
-      },
-    ],
     phone: {
       type: String,
       required: true,
     },
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+    storeName: String,
+    storeLogo: {
+      public_id: {
+        type: String,
+        default: null,
       },
-    ],
-    cart: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-        },
+      url: {
+        type: String,
+        default:
+          "https://res.cloudinary.com/dnugvoy3m/image/upload/v1742911438/flipzon-ecommerce/defaults/default-store_czgdax.png",
       },
-    ],
-    sellerDetails: {
-      storeName: String,
-      storeLogo: String,
-      storeDescription: String,
-      isApproved: {
-        type: Boolean,
-        default: false,
-      },
+    },
+    storeDescription: String,
+    isSellerApproved: {
+      type: Boolean,
+      default: false,
+    },
+    isSellerRequested: {
+      type: Boolean,
+      default: false,
+    },
+    isSellerRejected: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

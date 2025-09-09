@@ -22,8 +22,8 @@ const ProductSchema = new mongoose.Schema(
     },
     images: [
       {
-        type: String,
-        required: true,
+        public_id: { type: String, required: true },
+        url: { type: String, required: true },
       },
     ],
     category: {
@@ -43,23 +43,11 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    ratings: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Review",
-      },
-    ],
     seller: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    variants: [
-      {
-        name: String, // Example: "Color", "Size"
-        options: [String], // Example: ["Red", "Blue"], ["S", "M", "L"]
-      },
-    ],
     isFeatured: {
       type: Boolean,
       default: false,

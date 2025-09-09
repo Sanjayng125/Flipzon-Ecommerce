@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const AddressSchema = new mongoose.Schema(
   {
@@ -34,7 +34,7 @@ const AddressSchema = new mongoose.Schema(
     country: {
       type: String,
       required: true,
-      default: "India", // Change if your app is international
+      default: "india", // Change if your app is international
     },
     isDefault: {
       type: Boolean,

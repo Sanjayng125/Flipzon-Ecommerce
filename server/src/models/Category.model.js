@@ -16,11 +16,19 @@ const CategorySchema = new mongoose.Schema(
     },
     parentCategory: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Category", // Supports nested categories (subcategories)
+      ref: "Category",
       default: null,
     },
     image: {
-      type: String,
+      public_id: {
+        type: String,
+        default: null,
+      },
+      url: {
+        type: String,
+        default:
+          "https://res.cloudinary.com/dnugvoy3m/image/upload/v1756474868/flipzon-ecommerce/defaults/default-category-2_l62rfw.jpg",
+      },
     },
     isFeatured: {
       type: Boolean,
