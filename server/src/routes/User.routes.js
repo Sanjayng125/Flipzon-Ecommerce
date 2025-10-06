@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  banUser,
   becomeSeller,
   changePassword,
   deleteAccount,
@@ -52,6 +53,7 @@ router.delete(
 
 // Admin
 router.get("/get-users", Auth, RoleCheck("admin"), getAllUsers);
+router.post("/ban-user/:id", Auth, RoleCheck("admin"), banUser);
 router.delete("/delete-user/:id", Auth, RoleCheck("admin"), deleteUser);
 router.patch("/seller-approve/:id", Auth, RoleCheck("admin"), sellerApprove);
 router.patch("/seller-reject/:id", Auth, RoleCheck("admin"), sellerReject);

@@ -7,9 +7,12 @@ export const getMyAddresses = async (req, res) => {
 
     const addresses = await Address.find({
       user: id,
-    }).sort({ isDefault: -1, createdAt: -1 });
+    });
 
-    return res.status(200).json({ success: true, addresses });
+    return res.status(200).json({
+      success: true,
+      addresses,
+    });
   } catch (error) {
     console.log(error);
     return res
@@ -63,6 +66,13 @@ export const addAddress = async (req, res) => {
 
     if (addresses.length === 0) {
       addressData.isDefault = true;
+    }
+
+    if (addresses.length >= 6) {
+      return res.status(200).json({
+        success: false,
+        message: "You can only add upto 6 addresses!",
+      });
     }
 
     const data = {

@@ -5,14 +5,33 @@ import Wishlist from "../models/Wishlist.model.js";
 export const getWishlist = async (req, res) => {
   try {
     const userId = req.user._id;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const data = await Wishlist.aggregate([
       { $match: { user: userId } },
 
+      // Get total count before pagination
+      {
+        $addFields: {
+          totalProducts: { $size: "$items" },
+        },
+      },
+
+      // Slice items array for pagination
+      {
+        $addFields: {
+          paginatedItems: {
+            $slice: ["$items", skip, Number(limit)],
+          },
+        },
+      },
+
+      // Lookup only the paginated items
       {
         $lookup: {
           from: "products",
-          let: { pidList: "$items" },
+          let: { pidList: "$paginatedItems" },
           pipeline: [
             { $match: { $expr: { $in: ["$_id", "$$pidList"] } } },
             {
@@ -29,11 +48,12 @@ export const getWishlist = async (req, res) => {
         },
       },
 
+      // Map paginated items with product details
       {
         $addFields: {
-          items: {
+          products: {
             $map: {
-              input: "$items",
+              input: "$paginatedItems",
               as: "pid",
               in: {
                 $let: {
@@ -61,23 +81,39 @@ export const getWishlist = async (req, res) => {
         },
       },
 
-      { $project: { productDocs: 0 } },
+      {
+        $project: {
+          totalProducts: 1,
+          products: 1,
+        },
+      },
     ]);
 
-    const wishlist = data[0] || null;
+    const result = data[0];
 
-    if (!wishlist) {
-      return res
-        .status(200)
-        .json({ success: false, message: "Wishlist is empty!" });
+    if (!result || result.totalProducts === 0) {
+      return res.status(200).json({
+        success: true,
+        totalProducts: 0,
+        currentPage: Number(page),
+        totalPages: 0,
+        products: [],
+      });
     }
 
-    return res.status(200).json({ success: true, wishlist });
+    return res.status(200).json({
+      success: true,
+      totalProducts: result.totalProducts,
+      currentPage: Number(page),
+      totalPages: Math.ceil(result.totalProducts / Number(limit)),
+      products: result.products,
+    });
   } catch (error) {
     console.error("getWishlist error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong!" });
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong!",
+    });
   }
 };
 
@@ -100,15 +136,46 @@ export const addItem = async (req, res) => {
         .json({ success: false, message: "Product not found!" });
     }
 
-    const productExists = await Wishlist.findOne({
+    const wishlist = await Wishlist.findOne({
       user: userId,
-      items: productId,
     });
 
-    if (productExists) {
+    if (!wishlist) {
+      const newWishlist = await Wishlist.create({
+        user: userId,
+        items: [productId],
+      });
+
+      if (!newWishlist) {
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Failed to add product to wishlist!",
+          });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Product added to Wishlist!",
+      });
+    }
+
+    const itemExists = wishlist.items.some(
+      (product) => product.toString() === productId
+    );
+
+    if (itemExists) {
       return res.status(400).json({
         success: false,
-        message: "Product already added to Wishlist!",
+        message: "Product already exists in Wishlist!",
+      });
+    }
+
+    if (wishlist.items.length >= 50) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only add upto 50 products to wishlist at a time!",
       });
     }
 

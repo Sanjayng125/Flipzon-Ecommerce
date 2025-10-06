@@ -31,6 +31,14 @@ const orderItemSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    refundStatus: {
+      type: String,
+      default: null,
+    },
+    refundedAmount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
@@ -43,8 +51,9 @@ const orderSchema = new mongoose.Schema(
         ref: "User",
         required: true,
       },
-      phone: { type: String, required: true },
+      name: { type: String, required: true },
       email: { type: String, required: true },
+      phone: { type: String, required: true },
     },
     items: [orderItemSchema],
 
@@ -58,7 +67,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentMethod: {
       type: String,
-      required: true,
+      default: "pending",
     },
 
     shippingAddress: {

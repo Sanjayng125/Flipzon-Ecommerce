@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.model.js";
 import { redis } from "../db/redis.js";
 import mongoose from "mongoose";
 
@@ -29,15 +28,16 @@ export const Auth = async (req, res, next) => {
       let user = null;
 
       const cached = await redis.get(`user:${decoded._id}`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        user = { ...parsed, _id: new mongoose.Types.ObjectId(`${parsed._id}`) };
-      } else {
-        user = await User.findById(decoded._id).select("-password");
-        if (user) {
-          await redis.set(`user:${user._id}`, JSON.stringify(user));
-        }
+      if (!cached) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: Session expired",
+          login: true,
+        });
       }
+
+      const parsed = JSON.parse(cached);
+      user = { ...parsed, _id: new mongoose.Types.ObjectId(`${parsed._id}`) };
 
       if (!user) {
         return res

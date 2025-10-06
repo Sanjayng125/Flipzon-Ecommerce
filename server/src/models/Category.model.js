@@ -27,10 +27,14 @@ const CategorySchema = new mongoose.Schema(
       url: {
         type: String,
         default:
-          "https://res.cloudinary.com/dnugvoy3m/image/upload/v1756474868/flipzon-ecommerce/defaults/default-category-2_l62rfw.jpg",
+          "https://res.cloudinary.com/dnugvoy3m/image/upload/v1756559780/flipzon-ecommerce/defaults/default-category-white_urans4.png",
       },
     },
     isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    showInCategoryBar: {
       type: Boolean,
       default: false,
     },

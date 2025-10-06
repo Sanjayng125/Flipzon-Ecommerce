@@ -48,3 +48,16 @@ export const deleteManyImage = async (publicIds) => {
     return true;
   }
 };
+
+export const formatDate = (date, withTime = true) => {
+  return new Date(date).toLocaleString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    ...(withTime && {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }),
+  });
+};

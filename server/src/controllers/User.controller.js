@@ -33,6 +33,12 @@ export const login = async (req, res) => {
         .json({ success: false, message: "Account not found!" });
     }
 
+    if (validUser.isBanned) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Your Account has been banned!" });
+    }
+
     // password check
     const isPasswordValid = await verifyPassword(password, validUser.password);
     if (!isPasswordValid) {
@@ -210,13 +216,17 @@ export const logout = async (req, res) => {
   try {
     const user = req.user;
 
+    const fromAll = req.query["from-all"];
+
+    if (fromAll) {
+      await redis.del(`user:${user._id}`);
+    }
+
     res.clearCookie(process.env.COOKIE_NAME || "token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
     });
-
-    await redis.del(`user:${user._id}`);
 
     return res.status(200).json({ success: true, message: "Logged out!" });
   } catch (error) {
@@ -344,7 +354,6 @@ export const getUser = async (req, res) => {
   try {
     return res.status(200).json({
       success: true,
-      message: "Profile: Ok",
       user: req.user,
     });
   } catch (error) {
@@ -447,7 +456,8 @@ export const updateProfile = async (req, res) => {
     // delete previous avatar and store logo if exists
     if (updateData?.avatar && userExits?.avatar?.public_id) {
       await cloudinary.uploader.destroy(userExits.avatar.public_id);
-    } else if (updateData?.storeLogo && userExits?.storeLogo?.public_id) {
+    }
+    if (updateData?.storeLogo && userExits?.storeLogo?.public_id) {
       await cloudinary.uploader.destroy(userExits.storeLogo.public_id);
     }
 
@@ -584,9 +594,10 @@ export const resetPassword = async (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = await jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      return res.status(400).json({ success: false, message: "Bad request!" });
+      console.log(err);
+      return res.status(401).json({ success: false, message: "Unauthorized!" });
     }
 
     if (decoded && decoded?.id && decoded?.email && decoded?.email === email) {
@@ -614,7 +625,7 @@ export const resetPassword = async (req, res) => {
       }
     }
 
-    return res.status(400).json({ success: false, message: "Bad request!" });
+    return res.status(401).json({ success: false, message: "Unauthorized!" });
   } catch (error) {
     console.log(error);
     return res
@@ -627,16 +638,18 @@ export const deleteAccount = async (req, res) => {
   try {
     const { _id: id, role } = req.user;
 
-    if (role === "seller") {
-      await Product.deleteMany({ seller: id });
-    }
-
-    await Promise.all([
+    const clearList = [
       Address.deleteMany({ user: id }),
       Review.deleteMany({ user: id }),
       Cart.deleteOne({ user: id }),
       Wishlist.deleteOne({ user: id }),
-    ]);
+    ];
+
+    if (role === "seller") {
+      clearList.push(Product.deleteMany({ seller: id }));
+    }
+
+    await Promise.all(clearList);
 
     await User.findByIdAndDelete(id);
 
@@ -709,6 +722,52 @@ export const getAllUsers = async (req, res) => {
       totalUsers,
       currentPage: Number(page),
       totalPages: Math.ceil(totalUsers / limit),
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Something went wrong!" });
+  }
+};
+
+export const banUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid User ID!" });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
+    }
+
+    if (user.role === "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "You can not ban/unban admin account!",
+      });
+    }
+
+    if (user.isBanned) {
+      user.isBanned = false;
+    } else {
+      user.isBanned = true;
+      await redis.del(`user:${id}`);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Account ${user.isBanned ? "banned" : "unbanned"}!`,
     });
   } catch (error) {
     console.log(error);

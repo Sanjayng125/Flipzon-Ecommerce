@@ -2,7 +2,7 @@ import express from "express";
 import { Auth, RoleCheck } from "../middlewares/index.js";
 import {
   createOrder,
-  getUserOrders,
+  getMyOrders,
   getOrderById,
   getAllOrders,
   updateOrderStatus,
@@ -14,9 +14,11 @@ import {
 const router = express.Router();
 
 // User
-router.post("/", Auth, RoleCheck("user"), createOrder);
-router.get("/my-orders", Auth, RoleCheck("user"), getUserOrders);
-router.put("/:id/cancel", Auth, RoleCheck("user"), cancelOrder);
+router.post("/create", Auth, RoleCheck("user"), createOrder);
+router.get("/my-orders", Auth, RoleCheck("user"), getMyOrders);
+
+// User & Seller
+router.put("/:id/cancel", Auth, RoleCheck(["user", "seller"]), cancelOrder);
 
 // User, Seller and Admin
 router.get("/:id", Auth, getOrderById);
@@ -29,7 +31,7 @@ router.get(
   RoleCheck("seller"),
   getSellerActiveOrders
 );
-router.put("/:id/status", Auth, RoleCheck("seller"), updateOrderStatus);
+router.put("/seller/:id/status", Auth, RoleCheck("seller"), updateOrderStatus);
 
 // Admin
 router.get("/", Auth, RoleCheck("admin"), getAllOrders);

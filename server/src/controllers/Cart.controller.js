@@ -51,19 +51,42 @@ export const addItem = async (req, res) => {
         .json({ success: false, message: "Invalid product ID!" });
     }
 
-    let cart = await Cart.findOneAndUpdate(
-      { user: userId, "items.product": product },
-      { $inc: { "items.$.quantity": 1 } },
-      { new: true }
-    );
+    let cart = await Cart.findOne({ user: userId });
 
     if (!cart) {
-      cart = await Cart.findOneAndUpdate(
-        { user: userId },
-        { $push: { items: { product, quantity: 1 } } },
-        { new: true, upsert: true } // Upsert ensures a cart is created if it doesn't exist
-      );
+      cart = await Cart.create({
+        user: userId,
+        items: [{ product, quantity: 1 }],
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Item added to cart!",
+        cart,
+      });
     }
+
+    const itemExists = cart.items.some(
+      (item) => item.product.toString() === product
+    );
+
+    if (itemExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Item already exists in cart!",
+        cart,
+      });
+    }
+
+    if (cart.items.length >= 5) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only add upto 5 products to cart at a time!",
+      });
+    }
+
+    cart.items.push({ product, quantity: 1 });
+    await cart.save();
 
     return res.status(200).json({
       success: true,
@@ -78,10 +101,11 @@ export const addItem = async (req, res) => {
   }
 };
 
-export const removeItem = async (req, res) => {
+export const updateQty = async (req, res) => {
   try {
     const { _id: userId } = req.user;
     const { id: product } = req.params;
+    const { qty } = req.body;
 
     if (!mongoose.isValidObjectId(product)) {
       return res
@@ -89,49 +113,37 @@ export const removeItem = async (req, res) => {
         .json({ success: false, message: "Invalid product ID!" });
     }
 
-    const cart = await Cart.findOne({
-      user: userId,
-      "items.product": product,
-    });
-
-    if (!cart) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Cart not found!" });
+    if (!qty || isNaN(qty) || qty < 1 || qty > 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Quantity must be between 1 and 3!",
+      });
     }
 
-    const item = cart.items.find((item) => item.product.toString() === product);
+    const updatedCart = await Cart.findOneAndUpdate(
+      { user: userId, "items.product": product },
+      { "items.$.quantity": qty },
+      { new: true }
+    );
 
-    if (!item) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found in cart!" });
+    if (!updatedCart) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found in cart!",
+      });
     }
-
-    if (item.quantity > 1) {
-      await Cart.updateOne(
-        { user: userId, "items.product": product },
-        { $inc: { "items.$.quantity": -1 } }
-      );
-    } else {
-      await Cart.updateOne(
-        { user: userId },
-        { $pull: { items: { product: product } } }
-      );
-    }
-
-    const updatedCart = await Cart.findOne({ user: userId });
 
     return res.status(200).json({
       success: true,
-      message: "Item updated in cart!",
+      message: "Item quantity updated!",
       cart: updatedCart,
     });
   } catch (error) {
-    console.log(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong!" });
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong!",
+    });
   }
 };
 

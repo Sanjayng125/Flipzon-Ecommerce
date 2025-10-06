@@ -5,7 +5,7 @@ import {
   getMyProducts,
   getProduct,
   getProducts,
-  getSimilarProducts,
+  getRelatedProducts,
   updateProduct,
   updateProductFeatured,
 } from "../controllers/Product.controller.js";
@@ -14,7 +14,7 @@ import { Auth, RoleCheck } from "../middlewares/index.js";
 const router = express.Router();
 
 router.get("/", getProducts); // All, search, sort, featured, and category
-router.get("/similar/:categoryId/:productId", getSimilarProducts);
+router.get("/related/:categoryId", getRelatedProducts);
 router.get("/:id", getProduct);
 
 router.get("/seller/mine", Auth, RoleCheck(["seller"]), getMyProducts);

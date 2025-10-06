@@ -1,244 +1,275 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.model.js";
-import Cart from "../models/Cart.model.js";
 import Product from "../models/Product.model.js";
+import { sendOrderCancelled, sendOrderPlaced } from "../utils/mailSender.js";
+import { Cashfree } from "../utils/cashfree.js";
+import CheckoutSession from "../models/CheckoutSession.model.js";
+import Cart from "../models/Cart.model.js";
+import { formatDate } from "../utils/index.js";
 
-import { Cashfree } from "cashfree-pg";
-
-const CASHFREE_CLIENT_ID = process.env.CASHFREE_CLIENT_ID;
-const CASHFREE_CLIENT_SECRET = process.env.CASHFREE_CLIENT_SECRET;
-const CASHFREE_VERSION = process.env.CASHFREE_VERSION;
-
-Cashfree.XClientId = CASHFREE_CLIENT_ID;
-Cashfree.XClientSecret = CASHFREE_CLIENT_SECRET;
-Cashfree.XEnvironment =
-  process.env.CASHFREE_APP_ENV === "production"
-    ? Cashfree.Environment.PRODUCTION
-    : Cashfree.Environment.SANDBOX;
+const { CASHFREE_VERSION } = process.env;
 
 export const createOrder = async (req, res) => {
   try {
-    if (!CASHFREE_CLIENT_ID || !CASHFREE_CLIENT_SECRET || !CASHFREE_VERSION) {
-      return res.status(500).json({ success: false, message: "Server error!" });
-    }
-
     const { _id: userId, phone, email, name } = req.user;
-    const {
-      shippingAddress,
-      paymentMethod = "Cashfree",
-      productId,
-      quantity,
-      currency,
-    } = req.body;
+    const { shippingAddress, sessionId, currency } = req.body;
 
     if (!shippingAddress) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mandatory fields are required!" });
+      return res.status(400).json({
+        success: false,
+        message: "Shipping address is required!",
+      });
     }
 
-    let items = [];
-    let totalAmount = 0;
+    if (!sessionId || !mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Session ID!",
+      });
+    }
 
-    if (productId) {
-      if (!mongoose.isValidObjectId(productId)) {
+    const checkoutSession = await CheckoutSession.findOne({
+      _id: sessionId,
+      user: userId,
+    });
+
+    if (!checkoutSession) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found or expired!",
+      });
+    }
+
+    const items = checkoutSession.items;
+
+    if (items.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "You can order a maximum of 5 different products at a time.",
+      });
+    }
+
+    let totalAmount = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+      const { product: productId, quantity } = item;
+
+      if (quantity <= 0) {
         return res
           .status(400)
-          .json({ success: false, message: "Invalid Product ID!" });
+          .json({ success: false, message: "Invalid quantity!" });
+      }
+
+      if (quantity > 3) {
+        return res.status(400).json({
+          success: false,
+          message: "Quantity for each product cannot exceed 3.",
+        });
       }
 
       const product = await Product.findById(productId);
       if (!product) {
         return res
           .status(404)
-          .json({ success: false, message: "Product not found!" });
-      }
-
-      if (quantity <= 0) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Quantity must be at least 1!" });
+          .json({ success: false, message: `Product not found: ${productId}` });
       }
 
       if (product.stock < quantity) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Insufficient stock!" });
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.name}`,
+        });
       }
 
-      const price = product?.discount
+      const price = product.discount
         ? product.price - (product.price * product.discount) / 100
         : product.price;
 
-      totalAmount = price * quantity;
+      totalAmount += price * quantity;
 
-      items.push({
+      validatedItems.push({
         product: product._id,
-        quantity,
         seller: product.seller,
+        quantity,
         price,
       });
-    } else {
-      const cart = await Cart.findOne({ user: userId }).populate(
-        "items.product"
-      );
-      if (!cart || cart.items.length === 0) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Cart is empty!" });
-      }
-
-      for (let item of cart.items) {
-        if (item.product.stock < item.quantity) {
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient stock for ${item.product.name}`,
-          });
-        }
-      }
-
-      items = cart.items.map((item) => ({
-        product: item.product._id,
-        quantity: item.quantity,
-        seller: item.product.seller,
-        price: item.product.discount
-          ? item.product.price -
-            (item.product.price * item.product.discount) / 100
-          : item.product.price,
-      }));
-
-      totalAmount = cart.items.reduce((total, item) => {
-        const price = item.product.discount
-          ? item.product.price -
-            (item.product.price * item.product.discount) / 100
-          : item.product.price;
-        return total + price * item.quantity;
-      }, 0);
-
-      await Cart.findOneAndUpdate(
-        { user: userId },
-        {
-          items: [],
-        }
-      );
     }
 
     const order = new Order({
-      user: { userId, phone, email },
-      items,
-      totalAmount,
-      paymentMethod,
-      shippingAddress,
+      user: { userId, phone, email, name },
+      items: validatedItems,
+      totalAmount: Number(totalAmount.toFixed(2)),
+      shippingAddress: {
+        fullName: shippingAddress.fullName,
+        address: shippingAddress.streetAddress,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        postalCode: shippingAddress.postalCode,
+        country: shippingAddress.country,
+        email,
+        phone,
+      },
     });
 
     const paymentData = {
       order_id: order._id.toString(),
-      order_amount: order.totalAmount,
+      order_amount: order.totalAmount.toFixed(2),
       order_currency: currency ?? "INR",
       customer_details: {
         customer_name: name,
         customer_id: userId.toString(),
-        customer_email: order.user.email,
-        customer_phone: order.user.phone,
+        customer_email: email,
+        customer_phone: phone,
       },
       order_meta: {
-        return_url: `${process.env.CLIENT_URL}/orders/${order._id.toString()}`,
-        notify_url: `${process.env.SERVER_URL}/api/payments/webhook`,
+        return_url: `${process.env.CLIENT_URL}/checkout/result/${order._id}`,
+        notify_url: `${process.env.SERVER_URL}/api/payments/webhook/payment`,
       },
-      order_expiry_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+      order_expiry_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min expiry
     };
 
     const paymentOrderRes = await Cashfree.PGCreateOrder(
       CASHFREE_VERSION,
       paymentData
     );
-    const data = paymentOrderRes.data;
-
-    if (paymentOrderRes.status !== 200 || !data?.payment_session_id) {
+    if (
+      paymentOrderRes.status !== 200 ||
+      !paymentOrderRes.data?.payment_session_id
+    ) {
       return res
         .status(500)
         .json({ success: false, message: "Payment initiation failed" });
     }
 
-    await order.save();
+    const afterOrderUpdates = [
+      order.save(),
+      CheckoutSession.deleteOne({
+        _id: sessionId,
+        user: userId,
+      }),
+    ];
 
-    for (let item of items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity, sold: item.quantity },
-      });
+    if (checkoutSession?.buyType === "cart-checkout") {
+      afterOrderUpdates.push(
+        Cart.findOneAndUpdate(
+          {
+            user: userId,
+          },
+          {
+            $set: {
+              items: [],
+            },
+          }
+        )
+      );
     }
+
+    await Promise.all(afterOrderUpdates);
+
+    const bulkOps = validatedItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: [
+          {
+            $set: {
+              sold: { $add: ["$sold", item.quantity] },
+              stock: {
+                $max: [0, { $subtract: ["$stock", item.quantity] }],
+              },
+            },
+          },
+        ],
+      },
+    }));
+    await Product.bulkWrite(bulkOps);
+
+    await sendOrderPlaced(email, {
+      customerName: name,
+      orderId: order._id.toString(),
+      orderDate: formatDate(order.createdAt),
+      items: validatedItems.length,
+      orderAmount: totalAmount.toFixed(2),
+      shippingAddress: order.shippingAddress,
+      orderTrackingUrl: `${process.env.CLIENT_URL}/orders/${order._id}`,
+    });
 
     return res.status(201).json({
       success: true,
-      message: "Order placed successfully!",
+      message: "Order placed successfully!, waiting for payment...",
       order,
-      paymentSessionId: data.payment_session_id,
+      paymentSessionId: paymentOrderRes.data.payment_session_id,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create Order Error:", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal Server Error" });
   }
 };
 
-export const getUserOrders = async (req, res) => {
+export const getMyOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, sort } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const sortOption = {
+      createdAt: -1,
+    };
+
+    if (sort && sort === "oldest") {
+      sortOption.createdAt = 1;
+    }
+
+    const matchStage = { "user.userId": req.user._id };
 
     const orders = await Order.aggregate([
-      {
-        $match: { "user.userId": req.user._id },
-      },
+      { $match: matchStage },
       { $unwind: "$items" },
       {
         $lookup: {
           from: "products",
-          let: { productId: "$items.product" },
-          pipeline: [
-            { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
-            {
-              $project: {
-                stock: 0,
-                sold: 0,
-                isFeatured: 0,
-                createdAt: 0,
-                updatedAt: 0,
-                __v: 0,
-              },
-            },
-          ],
+          localField: "items.product",
+          foreignField: "_id",
           as: "productData",
         },
       },
-      { $unwind: { path: "$productData", preserveNullAndEmptyArrays: true } },
       {
         $addFields: {
           "items.product": {
-            $ifNull: [
-              {
+            $cond: {
+              if: { $gt: [{ $size: "$productData" }, 0] },
+              then: {
+                $let: {
+                  vars: { prod: { $arrayElemAt: ["$productData", 0] } },
+                  in: {
+                    _id: "$$prod._id",
+                    name: "$$prod.name",
+                    description: "$$prod.description",
+                    price: "$$prod.price",
+                    discount: "$$prod.discount",
+                    images: "$$prod.images",
+                    category: "$$prod.category",
+                    brand: "$$prod.brand",
+                    seller: "$$prod.seller",
+                    totalRatings: "$$prod.totalRatings",
+                    avgRating: "$$prod.avgRating",
+                  },
+                },
+              },
+              else: {
                 _id: null,
                 name: "Product not found",
                 description: "Product not available",
                 price: 0,
                 discount: null,
                 images: [],
-                category: {
-                  _id: null,
-                  name: "N/A",
-                },
+                category: { _id: null, name: "N/A" },
                 brand: "N/A",
-                seller: {
-                  _id: null,
-                  name: "N/A",
-                },
+                seller: { _id: null, name: "N/A" },
                 totalRatings: 0,
                 avgRating: 0,
               },
-              "$productData",
-            ],
+            },
           },
         },
       },
@@ -255,8 +286,8 @@ export const getUserOrders = async (req, res) => {
           items: { $push: "$items" },
         },
       },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
+      { $sort: sortOption },
+      { $skip: (Number(page) - 1) * Number(limit) },
       { $limit: Number(limit) },
     ]);
 
@@ -619,7 +650,6 @@ export const getSellerActiveOrders = async (req, res) => {
 
     const matchStage = {
       "items.seller": sellerId,
-      "items.status": { $nin: ["delivered", "cancelled"] },
     };
 
     if (search) {
@@ -818,36 +848,68 @@ export const getAllOrders = async (req, res) => {
 
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { _id: userId } = req.user;
+    const { _id: sellerId } = req.user;
     const { id } = req.params;
     const { itemId, orderStatus, trackingNumber } = req.body;
 
     if (!itemId || !orderStatus) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mandatory fields are required!" });
+      return res.status(400).json({
+        success: false,
+        message: "Mandatory fields are required!",
+      });
     }
 
-    if (!mongoose.isValidObjectId(id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid order ID!" });
+    const allowedStatuses = ["pending", "processing", "shipped", "delivered"];
+    if (!allowedStatuses.includes(orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status!",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(id) || !mongoose.isValidObjectId(itemId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID!",
+      });
     }
 
     const order = await Order.findOne({
       _id: id,
-      items: {
-        $elemMatch: {
-          _id: new mongoose.Types.ObjectId(`${itemId}`),
-          seller: userId,
-        },
-      },
+      "items._id": itemId,
+      "items.seller": sellerId,
     });
 
     if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found!" });
+      return res.status(404).json({
+        success: false,
+        message: "Order not found!",
+      });
+    }
+
+    const item = order.items.find(
+      (i) => i._id.toString() === itemId.toString()
+    );
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found!",
+      });
+    }
+
+    if (item.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot update cancelled items!",
+      });
+    }
+
+    if (item.status === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot change status of delivered items!",
+      });
     }
 
     const setUpdate = {
@@ -860,28 +922,20 @@ export const updateOrderStatus = async (req, res) => {
 
     if (orderStatus === "delivered") {
       setUpdate["items.$[elem].deliveredAt"] = new Date();
-    } else if (orderStatus === "cancelled") {
-      setUpdate["items.$[elem].cancelledAt"] = new Date();
     }
 
     const updatedOrder = await Order.findOneAndUpdate(
       {
         _id: id,
-        items: {
-          $elemMatch: {
-            _id: new mongoose.Types.ObjectId(`${itemId}`),
-            seller: userId,
-          },
-        },
+        "items._id": itemId,
+        "items.seller": sellerId,
       },
-      {
-        $set: setUpdate,
-      },
+      { $set: setUpdate },
       {
         arrayFilters: [
           {
-            "elem._id": new mongoose.Types.ObjectId(itemId),
-            "elem.seller": userId,
+            "elem._id": itemId,
+            "elem.seller": sellerId,
           },
         ],
         new: true,
@@ -889,50 +943,59 @@ export const updateOrderStatus = async (req, res) => {
     );
 
     if (!updatedOrder) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Failed to update order!" });
+      return res.status(400).json({
+        success: false,
+        message: "Failed to update order!",
+      });
     }
 
     return res.status(200).json({
       success: true,
       message: "Order status updated successfully!",
+      order: updatedOrder,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong!" });
+    console.error("updateOrderStatus error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong!",
+    });
   }
 };
 
 export const cancelOrder = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user._id;
+    const { id: orderId } = req.params;
     const { itemId } = req.body;
+    const userId = req.user._id;
+    const userRole = req.user.role;
 
-    if (!mongoose.isValidObjectId(id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid order ID!" });
+    if (!mongoose.isValidObjectId(orderId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID!",
+      });
     }
 
     if (!mongoose.isValidObjectId(itemId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid product ID!" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid item ID!",
+      });
     }
 
-    const order = await Order.findOne({
-      _id: id,
-      "user.userId": userId,
+    const query = {
+      _id: orderId,
       "items._id": itemId,
-      $and: [
-        { "items.status": { $ne: "cancelled" } },
-        { "items.status": { $ne: "delivered" } },
-      ],
-    });
+    };
+
+    if (userRole === "seller") {
+      query["items.seller"] = userId;
+    } else {
+      query["user.userId"] = userId;
+    }
+
+    const order = await Order.findOne(query);
 
     if (!order) {
       return res.status(404).json({
@@ -942,7 +1005,7 @@ export const cancelOrder = async (req, res) => {
     }
 
     const itemToCancel = order.items.find(
-      (item) => item._id.toString() === itemId.toString()
+      (item) => item._id.toString() === itemId
     );
 
     if (!itemToCancel) {
@@ -952,70 +1015,84 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
-    if (!["pending", "processing"].includes(itemToCancel.status)) {
+    const cancellableStatuses = ["pending", "processing"];
+
+    if (userRole === "seller") {
+      cancellableStatuses.push("shipped");
+    }
+
+    if (!cancellableStatuses.includes(itemToCancel.status)) {
       return res.status(400).json({
         success: false,
-        message: "Cannot cancel this product!",
+        message: `Cannot cancel ${itemToCancel.status} items!`,
       });
     }
 
+    const refundAmount = itemToCancel.price * itemToCancel.quantity;
+    const shouldRefund = order.paymentStatus === "paid";
+
     const cancelledOrder = await Order.findOneAndUpdate(
-      {
-        _id: id,
-        "user.userId": userId,
-        items: {
-          $elemMatch: {
-            _id: new mongoose.Types.ObjectId(`${itemId}`),
-          },
-        },
-      },
+      query,
       {
         $set: {
           "items.$[elem].status": "cancelled",
           "items.$[elem].cancelledAt": new Date(),
+          "items.$[elem].refundAmount": shouldRefund ? refundAmount : 0,
         },
       },
       {
-        arrayFilters: [
-          {
-            "elem._id": new mongoose.Types.ObjectId(`${itemId}`),
-            // "elem.status": { $in: ["pending", "processing"] },
-          },
-        ],
+        arrayFilters: [{ "elem._id": itemId }],
         new: true,
       }
     );
 
     if (!cancelledOrder) {
-      return res.status(404).json({
+      return res.status(500).json({
         success: false,
-        message: "Failed to cancel order. try again later!",
+        message: "Failed to cancel item. Please try again!",
       });
     }
 
-    await Product.updateOne({ _id: itemToCancel.product }, [
+    await Product.findByIdAndUpdate(itemToCancel.product, [
       {
         $set: {
           stock: { $add: ["$stock", itemToCancel.quantity] },
           sold: {
-            $cond: {
-              if: { $gte: ["$sold", itemToCancel.quantity] },
-              then: { $subtract: ["$sold", itemToCancel.quantity] },
-              else: 0,
-            },
+            $max: [0, { $subtract: ["$sold", itemToCancel.quantity] }],
           },
         },
       },
     ]);
 
+    if (shouldRefund) {
+      const refundData = {
+        refund_amount: refundAmount,
+        refund_id: itemToCancel._id.toString(),
+        refund_note: `Refund for order ${orderId} - Item cancelled by ${userRole}`,
+      };
+
+      await Cashfree.PGOrderCreateRefund(CASHFREE_VERSION, orderId, refundData);
+
+      await sendOrderCancelled(order.user.name, {
+        customerName: cancelledOrder.user.email,
+        orderId: cancelledOrder._id.toString(),
+        reason: `Item cancelled by ${userRole}, Refund amount ₹${refundAmount} will be refunded soon.`,
+        orderTrackingUrl: `${
+          process.env.CLIENT_URL
+        }/orders/${cancelledOrder._id.toString()}`,
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Order cancelled successfully!",
+      message:
+        "Item cancelled successfully!, Amount will be refunded soon if applicable.",
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong!" });
+    console.error("cancelOrder error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong!",
+    });
   }
 };

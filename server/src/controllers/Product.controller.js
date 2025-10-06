@@ -2,11 +2,12 @@ import mongoose from "mongoose";
 import Product from "../models/Product.model.js";
 import Review from "../models/Review.model.js";
 import { deleteImage } from "../utils/index.js";
+import Category from "../models/Category.model.js";
 
 export const getProducts = async (req, res) => {
   try {
     const {
-      search,
+      q: search,
       category,
       sort,
       priceMin = 0,
@@ -15,6 +16,7 @@ export const getProducts = async (req, res) => {
       limit = 10,
       featured,
       outofstock,
+      categorySlug,
     } = req.query;
 
     let filter = {
@@ -30,24 +32,32 @@ export const getProducts = async (req, res) => {
     }
 
     if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
+      filter.name = { $regex: search, $options: "i" };
     }
 
     if (category) {
-      filter.category =
-        typeof category === "string"
-          ? new mongoose.Types.ObjectId(`${category}`)
-          : category;
+      if (!mongoose.isValidObjectId(category)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Bad request!" });
+      }
+      filter.category = new mongoose.Types.ObjectId(`${category}`);
+    } else if (categorySlug) {
+      const category = await Category.findOne({ slug: categorySlug });
+
+      if (!category) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Category not found!" });
+      }
+      filter.category = category._id;
     }
 
     if (featured && (featured === "true" || featured === true)) {
       filter.isFeatured = true;
     }
 
-    let sortOption = { createdAt: 1 };
+    let sortOption = { createdAt: -1 };
 
     if (sort) {
       sortOption = {};
@@ -109,12 +119,26 @@ export const getProducts = async (req, res) => {
       {
         $addFields: {
           seller: {
-            _id: { $arrayElemAt: ["$sellerData._id", 0] },
-            name: { $arrayElemAt: ["$sellerData.name", 0] },
+            _id: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData._id", 0] }, "$seller"],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.name", 0] }, "N/A"],
+            },
+            storeName: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.storeName", 0] }, "N/A"],
+            },
           },
           category: {
-            _id: { $arrayElemAt: ["$categoryData._id", 0] },
-            name: { $arrayElemAt: ["$categoryData.name", 0] },
+            _id: {
+              $ifNull: [
+                { $arrayElemAt: ["$categoryData._id", 0] },
+                "$category",
+              ],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$categoryData.name", 0] }, "N/A"],
+            },
           },
           totalRatings: {
             $ifNull: [{ $arrayElemAt: ["$ratingStats.totalRatings", 0] }, 0],
@@ -147,131 +171,12 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// export const getProducts = async (req, res) => {
-//   try {
-//     const { search, category, sort, page = 1, limit = 10 } = req.query;
-//     const priceMin = req.query["price"]?.["min"] || 0;
-//     const priceMax = req.query["price"]?.["max"] || Infinity;
-
-//     let filter = {
-//       price: { $gte: Number(priceMin), $lte: Number(priceMax) },
-//     };
-
-//     if (search) {
-//       filter.$or = [
-//         { name: { $regex: search, $options: "i" } },
-//         { description: { $regex: search, $options: "i" } },
-//       ];
-//     }
-
-//     if (category) {
-//       filter.category =
-//         typeof category === "string"
-//           ? new mongoose.Types.ObjectId(`${category}`)
-//           : category;
-//     }
-
-//     let sortOption = {
-//       createdAt: 1,
-//     };
-//     if (
-//       sort &&
-//       (sort === "price_asc" || sort === "price_desc" || sort === "latest")
-//     ) {
-//       sortOption = {};
-//       if (sort === "price_asc") sortOption.price = 1;
-//       else if (sort === "price_desc") sortOption.price = -1;
-//       else if (sort === "latest") sortOption.createdAt = -1;
-//     }
-
-//     const totalProducts = await Product.countDocuments(filter);
-
-//     const products = await Product.aggregate([
-//       { $match: filter },
-
-//       {
-//         $lookup: {
-//           from: "reviews",
-//           let: { productId: "$_id" },
-//           pipeline: [
-//             { $match: { $expr: { $eq: ["$product", "$$productId"] } } },
-//             {
-//               $group: {
-//                 _id: null,
-//                 totalRatings: { $sum: 1 },
-//                 avgRating: { $avg: "$rating" },
-//               },
-//             },
-//           ],
-//           as: "ratingStats",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "seller",
-//           foreignField: "_id",
-//           as: "sellerData",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "categories",
-//           localField: "category",
-//           foreignField: "_id",
-//           as: "categoryData",
-//         },
-//       },
-
-//       {
-//         $addFields: {
-//           seller: {
-//             _id: { $arrayElemAt: ["$sellerData._id", 0] },
-//             name: { $arrayElemAt: ["$sellerData.name", 0] },
-//           },
-//           category: {
-//             _id: { $arrayElemAt: ["$categoryData._id", 0] },
-//             name: { $arrayElemAt: ["$categoryData.name", 0] },
-//           },
-//           totalRatings: {
-//             $ifNull: [{ $arrayElemAt: ["$ratingStats.totalRatings", 0] }, 0],
-//           },
-//           avgRating: {
-//             $ifNull: [{ $arrayElemAt: ["$ratingStats.avgRating", 0] }, 0],
-//           },
-//         },
-//       },
-
-//       { $project: { ratingStats: 0, sellerData: 0, categoryData: 0 } },
-
-//       { $sort: sortOption },
-//       { $skip: (Number(page) - 1) * Number(limit) },
-//       { $limit: Number(limit) },
-//     ]);
-
-//     return res.status(200).json({
-//       success: true,
-//       totalProducts,
-//       currentPage: Number(page),
-//       totalPages: Math.ceil(totalProducts / limit),
-//       products,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res
-//       .status(500)
-//       .json({ success: false, message: "Something went wrong!" });
-//   }
-// };
-
 export const getProduct = async (req, res) => {
   try {
     const { id: productId } = req.params;
 
     if (!mongoose.isValidObjectId(productId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid Product ID!" });
+      return res.status(400).json({ success: false, message: "Bad request!" });
     }
 
     const product = await Product.aggregate([
@@ -283,14 +188,14 @@ export const getProduct = async (req, res) => {
           pipeline: [
             { $match: { $expr: { $eq: ["$product", "$$productId"] } } },
             { $sort: { createdAt: -1 } },
-            { $limit: 4 },
+            { $limit: 6 },
             {
               $lookup: {
                 from: "users",
                 let: { userId: "$user" },
                 pipeline: [
                   { $match: { $expr: { $eq: ["$_id", "$$userId"] } } },
-                  { $project: { name: 1, avatar: 1 } },
+                  { $project: { name: 1, "avatar.url": 1 } },
                 ],
                 as: "userDetails",
               },
@@ -303,6 +208,14 @@ export const getProduct = async (req, res) => {
             { $project: { userDetails: 0, product: 0 } },
           ],
           as: "latestReviews",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "seller",
+          foreignField: "_id",
+          as: "sellerData",
         },
       },
       {
@@ -332,19 +245,40 @@ export const getProduct = async (req, res) => {
       },
       {
         $addFields: {
+          seller: {
+            _id: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData._id", 0] }, "$seller"],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.name", 0] }, "N/A"],
+            },
+            storeName: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.storeName", 0] }, "N/A"],
+            },
+          },
+          category: {
+            _id: {
+              $ifNull: [
+                { $arrayElemAt: ["$categoryData._id", 0] },
+                "$category",
+              ],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$categoryData.name", 0] }, "N/A"],
+            },
+            parentCategory: {
+              $arrayElemAt: ["$categoryData.parentCategory", 0],
+            },
+          },
           totalRatings: {
             $ifNull: [{ $arrayElemAt: ["$ratingStats.totalRatings", 0] }, 0],
           },
           avgRating: {
             $ifNull: [{ $arrayElemAt: ["$ratingStats.avgRating", 0] }, 0],
           },
-          category: {
-            _id: { $arrayElemAt: ["$categoryData._id", 0] },
-            name: { $arrayElemAt: ["$categoryData.name", 0] },
-          },
         },
       },
-      { $project: { ratingStats: 0, categoryData: 0 } },
+      { $project: { ratingStats: 0, categoryData: 0, sellerData: 0 } },
     ]);
 
     if (!product.length) {
@@ -362,28 +296,44 @@ export const getProduct = async (req, res) => {
   }
 };
 
-export const getSimilarProducts = async (req, res) => {
+export const getRelatedProducts = async (req, res) => {
   try {
-    const { categoryId: category, productId: product } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { categoryId } = req.params;
+    const { page = 1, limit = 10, product } = req.query;
 
-    if (!category || !product) {
+    if (!categoryId || !mongoose.isValidObjectId(categoryId)) {
       return res.status(400).json({
         success: false,
-        message: "Category and Product ID is required!",
+        message: "Bad request!",
       });
     }
 
+    let productId = null;
+
+    if (product) {
+      if (!mongoose.isValidObjectId(product)) {
+        return res.status(400).json({
+          success: false,
+          message: "Bad request!",
+        });
+      }
+      productId = product;
+    }
+
     const totalProducts = await Product.countDocuments({
-      category: new mongoose.Types.ObjectId(`${category}`),
-      _id: { $ne: new mongoose.Types.ObjectId(`${product}`) },
+      category: new mongoose.Types.ObjectId(`${categoryId}`),
+      ...(productId && {
+        _id: { $ne: new mongoose.Types.ObjectId(`${productId}`) },
+      }),
     });
 
     const products = await Product.aggregate([
       {
         $match: {
-          category: new mongoose.Types.ObjectId(`${category}`),
-          _id: { $ne: new mongoose.Types.ObjectId(`${product}`) },
+          category: new mongoose.Types.ObjectId(`${categoryId}`),
+          ...(productId && {
+            _id: { $ne: new mongoose.Types.ObjectId(`${productId}`) },
+          }),
         },
       },
       {
@@ -454,10 +404,12 @@ export const getMyProducts = async (req, res) => {
     }
 
     if (category) {
-      filter.category =
-        typeof category === "string"
-          ? new mongoose.Types.ObjectId(`${category}`)
-          : category;
+      if (!mongoose.isValidObjectId(category)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Bad request!" });
+      }
+      filter.category = new mongoose.Types.ObjectId(`${category}`);
     }
 
     let sortOption = {
@@ -515,12 +467,26 @@ export const getMyProducts = async (req, res) => {
       {
         $addFields: {
           seller: {
-            _id: { $arrayElemAt: ["$sellerData._id", 0] },
-            name: { $arrayElemAt: ["$sellerData.name", 0] },
+            _id: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData._id", 0] }, "$seller"],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.name", 0] }, "N/A"],
+            },
+            storeName: {
+              $ifNull: [{ $arrayElemAt: ["$sellerData.storeName", 0] }, "N/A"],
+            },
           },
           category: {
-            _id: { $arrayElemAt: ["$categoryData._id", 0] },
-            name: { $arrayElemAt: ["$categoryData.name", 0] },
+            _id: {
+              $ifNull: [
+                { $arrayElemAt: ["$categoryData._id", 0] },
+                "$category",
+              ],
+            },
+            name: {
+              $ifNull: [{ $arrayElemAt: ["$categoryData.name", 0] }, "N/A"],
+            },
           },
           totalRatings: {
             $ifNull: [{ $arrayElemAt: ["$ratingStats.totalRatings", 0] }, 0],

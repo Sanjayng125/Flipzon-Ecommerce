@@ -2,10 +2,41 @@ import mongoose from "mongoose";
 import Category from "../models/Category.model.js";
 import { makeSlug } from "../utils/index.js";
 import cloudinary from "../utils/cloudinary.js";
+import Product from "../models/Product.model.js";
+
+export const getCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: "Bad request!" });
+    }
+
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Category not found!" });
+    }
+
+    return res.status(200).json({ success: true, category });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Something went wrong!" });
+  }
+};
 
 export const getAllCategories = async (req, res) => {
   try {
-    const { search, page = 1, limit = 10, sort } = req.query;
+    const {
+      search,
+      page = 1,
+      limit = Infinity,
+      sort,
+      showInCategoryBar,
+    } = req.query;
 
     const sortOption = {
       createdAt: -1,
@@ -19,6 +50,16 @@ export const getAllCategories = async (req, res) => {
 
     if (search) {
       filter.name = { $regex: search, $options: "i" };
+    }
+
+    if (showInCategoryBar && showInCategoryBar === "true") {
+      filter.showInCategoryBar = true;
+      if (sort && sort === "oldest") {
+        sortOption.updatedAt = 1;
+      }
+      if (sort && sort === "latest") {
+        sortOption.updatedAt = -1;
+      }
     }
 
     const categories = await Category.find(filter)
@@ -49,9 +90,7 @@ export const getAllFeaturedCategories = async (req, res) => {
       isFeatured: true,
     });
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Categories: Ok", categories });
+    return res.status(200).json({ success: true, categories });
   } catch (error) {
     console.log(error);
     return res
@@ -62,7 +101,13 @@ export const getAllFeaturedCategories = async (req, res) => {
 
 export const addCategory = async (req, res) => {
   try {
-    const allowedFields = ["name", "parentCategory", "image", "isFeatured"];
+    const allowedFields = [
+      "name",
+      "parentCategory",
+      "image",
+      "isFeatured",
+      "showInCategoryBar",
+    ];
     const categoryDataArr = Object.entries(req.body).filter(([key]) =>
       allowedFields.includes(key)
     );
@@ -124,7 +169,13 @@ export const updateCategory = async (req, res) => {
         .json({ success: false, message: "Invalid category ID!" });
     }
 
-    const allowedFields = ["name", "parentCategory", "image", "isFeatured"];
+    const allowedFields = [
+      "name",
+      "parentCategory",
+      "image",
+      "isFeatured",
+      "showInCategoryBar",
+    ];
     const categoryDataArr = Object.entries(req.body).filter(([key]) =>
       allowedFields.includes(key)
     );

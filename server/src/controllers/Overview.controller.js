@@ -23,12 +23,14 @@ export const getAdminOverview = async (req, res) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // TODO: add total products sold
     const [
       productsCount,
       usersCount,
       sellersCount,
       ordersCount,
       revenueAgg,
+      totalProductsSoldAgg,
       newSellersCount,
       newSellerRequestsCount,
       revenuePerMonth,
@@ -41,6 +43,9 @@ export const getAdminOverview = async (req, res) => {
       Order.aggregate([
         { $match: { paymentStatus: "paid" } },
         { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+      ]) || 0,
+      Product.aggregate([
+        { $group: { _id: null, totalProductsSold: { $sum: "$sold" } } },
       ]) || 0,
       User.countDocuments({
         role: "seller",
@@ -83,7 +88,7 @@ export const getAdminOverview = async (req, res) => {
                 { $toString: "$_id.year" },
               ],
             },
-            revenue: 1,
+            revenue: { $round: ["$revenue", 2] },
           },
         },
       ]) || 0,
@@ -135,6 +140,7 @@ export const getAdminOverview = async (req, res) => {
       sellersCount,
       ordersCount,
       totalRevenue: revenueAgg?.[0]?.totalRevenue || 0,
+      totalProductsSold: totalProductsSoldAgg?.[0]?.totalProductsSold || 0,
       newSellersCount,
       newSellerRequestsCount,
       revenuePerMonth,
@@ -152,20 +158,27 @@ export const getAdminOverview = async (req, res) => {
 
 export const getSellerOverview = async (req, res) => {
   try {
-    const { _id } = req.user; // seller id
+    const { _id } = req.user;
 
+    // TODO: add total products sold
     const [
       productsCount,
+      totalOrdersCount,
       ordersCount,
       pendingOrdersCount,
+      cancelledOrdersCount,
       revenueAgg,
+      totalProductsSoldAgg,
       revenuePerMonth,
       ordersPerMonth,
     ] = await Promise.all([
       Product.countDocuments({ seller: _id }),
       Order.countDocuments({
         "items.seller": _id,
-        "items.status": { $in: ["delivered", "cancelled"] },
+      }),
+      Order.countDocuments({
+        "items.seller": _id,
+        "items.status": { $in: ["delivered"] },
         paymentStatus: "paid",
       }),
       Order.countDocuments({
@@ -173,6 +186,11 @@ export const getSellerOverview = async (req, res) => {
         "items.status": { $nin: ["delivered", "cancelled"] },
         paymentStatus: "paid",
       }),
+      Order.countDocuments({
+        "items.seller": _id,
+        "items.status": { $in: ["cancelled"] },
+      }),
+
       Order.aggregate([
         { $match: { paymentStatus: "paid" } },
         { $unwind: "$items" },
@@ -186,6 +204,10 @@ export const getSellerOverview = async (req, res) => {
           },
         },
       ]),
+      Product.aggregate([
+        { $match: { seller: _id } },
+        { $group: { _id: null, totalProductsSold: { $sum: "$sold" } } },
+      ]) || 0,
       Order.aggregate([
         {
           $match: {
@@ -219,7 +241,7 @@ export const getSellerOverview = async (req, res) => {
                 { $toString: "$_id.year" },
               ],
             },
-            revenue: 1,
+            revenue: { $round: ["$revenue", 2] },
           },
         },
       ]),
@@ -262,9 +284,12 @@ export const getSellerOverview = async (req, res) => {
 
     const result = {
       productsCount,
+      totalOrdersCount,
       ordersCount,
       pendingOrdersCount,
+      cancelledOrdersCount,
       totalRevenue: revenueAgg?.[0]?.totalRevenue || 0,
+      totalProductsSold: totalProductsSoldAgg?.[0]?.totalProductsSold || 0,
       revenuePerMonth,
       ordersPerMonth,
     };
