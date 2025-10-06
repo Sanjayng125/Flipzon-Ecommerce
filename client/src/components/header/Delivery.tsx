@@ -60,21 +60,21 @@ export const Delivery = ({
 
   if (!isLoading && !user) {
     return (
-      <p className="w-max flex items-center gap-1 hover:underline text-[#494c52] max-sm:text-sm">
+      <div className="w-max px-2 sm:px-4 flex items-center gap-1 hover:underline text-[#494c52] max-sm:text-sm">
         <MapPin className="size-5" />
         <Link href={"/login"}>Select Delivery Address</Link>
         <ChevronDown className="size-5" />
-      </p>
+      </div>
     );
   }
 
   if (!isLoading && isUser && Addresses.length === 0) {
     return (
-      <p className="w-max flex items-center gap-1 hover:underline text-[#494c52] max-sm:text-sm">
+      <div className="w-max px-2 sm:px-4 flex items-center gap-1 hover:underline text-[#494c52] max-sm:text-sm">
         <MapPin className="size-5" />
         <Link href={"/addresses"}>Select Delivery Address</Link>
         <ChevronDown className="size-5" />
-      </p>
+      </div>
     );
   }
 

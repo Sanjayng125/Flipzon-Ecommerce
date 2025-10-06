@@ -18,8 +18,10 @@ export const Navbar = () => {
   return (
     <nav className="flex flex-col justify-between bg-white text-[#1E293B] shadow-md">
       {/* Top links */}
-      <div className="flex items-center justify-between max-[420px]:justify-end px-4 py-2 bg-[#f5f5f5] mb-2 sm:mb-4">
-        <p className="text-[#494c52] max-[420px]:hidden">Welcome to Flipzon!</p>
+      <div className="flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-[#f5f5f5] mb-2 sm:mb-4">
+        <p className="text-[#494c52] max-[420px]:text-sm">
+          Welcome to Flipzon!
+        </p>
         <div className="flex items-center gap-2">
           {user && (
             <>

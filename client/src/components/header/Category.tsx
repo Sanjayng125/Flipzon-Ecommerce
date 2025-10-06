@@ -11,7 +11,7 @@ import { Skeleton } from "../ui/skeleton";
 export const Category = () => {
   const pathname = usePathname();
   const { api } = useFetch();
-  const { data, isLoading, error } = useQuery<Category[]>({
+  const { data, isLoading, error, isFetched } = useQuery<Category[]>({
     queryKey: ["get-categories-bar"],
     queryFn: async () => {
       const res = await api(
@@ -23,6 +23,9 @@ export const Category = () => {
       return res.categories;
     },
     staleTime: 1000 * 60 * 10, // 10mins
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const isActive = (name: string) => {
@@ -36,6 +39,8 @@ export const Category = () => {
       );
     }
   }, [error]);
+
+  if (!isLoading && !data && isFetched) return null;
 
   return (
     <div className="border-y-2 border-border-default bg-[#fff] flex overflow-x-scroll hide-scrollbar px-2 py-1 md:py-3 space-x-3">
