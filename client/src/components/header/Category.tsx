@@ -40,7 +40,7 @@ export const Category = () => {
     }
   }, [error]);
 
-  if (!isLoading && !data && isFetched) return null;
+  if (!isLoading && (!data || data.length === 0) && isFetched) return null;
 
   return (
     <div className="border-y-2 border-border-default bg-[#fff] flex overflow-x-scroll hide-scrollbar px-2 py-1 md:py-3 space-x-3">
