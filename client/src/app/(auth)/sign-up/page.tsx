@@ -74,7 +74,7 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full h-full flex items-center justify-center p-3 sm:p-6">
-      <div className="max-sm:w-full h-full max-sm:max-w-md max-w-5xl w-4/5 sm:w-4/6 md:w-full flex justify-center md:grid md:grid-cols-2 rounded-md overflow-hidden">
+      <div className="max-sm:w-full md:h-full max-sm:max-w-md max-w-5xl w-4/5 sm:w-4/6 md:w-full flex justify-center md:grid md:grid-cols-2 rounded-md overflow-hidden">
         <img
           alt="singup img"
           src={"/SIGN_UP_IMAGE.png"}
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                   className="w-full mb-2"
                   disabled={handleSignupMutation.isPending}
                 >
-                  {handleSignupMutation.isPending ? "Loading..." : "Sign-in"}
+                  {handleSignupMutation.isPending ? "Loading..." : "Sign-up"}
                 </Button>
 
                 <div className="flex justify-center text-sm mb-6">
