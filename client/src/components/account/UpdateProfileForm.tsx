@@ -14,7 +14,7 @@ import useCloudinary from "@/hooks/useCloudinary";
 import { useMutation } from "@tanstack/react-query";
 import { UpdateProfileSchema } from "@/schemas";
 import { InputField } from "../forms/fields/InputField";
-import { refreshSession } from "@/actions/session";
+import { refreshSession } from "@/actions/auth";
 import { useAuth } from "@/hooks/useAuth";
 
 interface UpdateFormProps {

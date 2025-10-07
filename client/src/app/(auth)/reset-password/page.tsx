@@ -3,6 +3,7 @@
 import { InputField } from "@/components/forms/fields/InputField";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import useFetch from "@/hooks/useFetch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +23,7 @@ const formSchema = z.object({
 const ResetPassword = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { api } = useFetch();
 
   const email = searchParams.get("user");
   const token = searchParams.get("token");
@@ -39,27 +41,14 @@ const ResetPassword = () => {
       token: string;
       email: string;
     }) => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/reset-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-          credentials: "include",
-        }
-      );
+      const res = await api("/users/reset-password", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
 
-      if (res.status === 401) {
-        router.replace("/login");
-      }
-
-      const data = await res.json();
-
-      if (!data?.success)
-        throw new Error(data?.message || "Something went wrong!");
-      return data;
+      if (!res?.success)
+        throw new Error(res?.message || "Something went wrong!");
+      return res;
     },
     onSuccess: () => {
       router.replace("/login");

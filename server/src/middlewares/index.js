@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 
 export const Auth = async (req, res, next) => {
   try {
-    const token = req?.cookies[process.env.COOKIE_NAME || "token"];
+    const token = req?.headers?.authorization?.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({

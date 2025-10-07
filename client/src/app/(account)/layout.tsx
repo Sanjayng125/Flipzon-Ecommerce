@@ -3,60 +3,50 @@
 import DashboardSidebar from "@/components/account/DashboardSidebar";
 import { AccountNavbar } from "@/components/header/AccountNavbar";
 import { Spinner } from "@/components/Spinner";
-import { useCart } from "@/hooks/cart/useCart";
-import { useAddress } from "@/hooks/useAddress";
 import { useAuth } from "@/hooks/useAuth";
 import useFetch from "@/hooks/useFetch";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { hasHydrated, clearAuth, user } = useAuth();
-  const { clearAddress } = useAddress();
-  const { clearCart } = useCart();
-  const queryClient = useQueryClient();
+  const { hasHydrated, user } = useAuth();
 
   const [show, setShow] = useState(false);
-  const { fetchWithAuth } = useFetch();
-  const router = useRouter();
+  const { fetchWithAuth, logout } = useFetch();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const manualLogoutRef = useRef(false);
 
-  const handleLogout = async (showToast: boolean, fromAllDevices: boolean) => {
+  const handleLogout = async (fromAllDevices: boolean) => {
     if (!hasHydrated) return;
     try {
-      const res = await fetchWithAuth(
-        `/users/logout${fromAllDevices ? "?from-all=true" : ""}`,
-        {
+      if (fromAllDevices) {
+        const res = await fetchWithAuth(`/users/logout`, {
           method: "POST",
+        });
+
+        if (res?.success) {
+          logout();
         }
-      );
 
-      if (res?.success) {
-        router.replace("/login");
-        clearAuth();
-        clearCart();
-        clearAddress();
-        queryClient.clear();
+        toast.success(res?.message);
+      } else {
+        logout();
+
+        toast.success("Logged out!");
       }
-
-      if (showToast) toast(res?.message);
     } catch (error: any) {
-      if (showToast) toast(error?.message || "Something went wrong!");
+      toast.error(error?.message || "Something went wrong!");
     }
   };
 
   const { mutate: Logout, isPending: isLogoutPending } = useMutation({
     mutationFn: async ({
-      showToast = true,
       fromAllDevices = false,
     }: {
-      showToast: boolean;
       fromAllDevices?: boolean;
-    }) => handleLogout(showToast, fromAllDevices),
+    }) => handleLogout(fromAllDevices),
   });
 
   useEffect(() => {
@@ -81,7 +71,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLogoutPending || !hasHydrated) return;
     if (!user && !manualLogoutRef.current) {
-      Logout({ showToast: false });
+      logout();
     }
   }, [user, hasHydrated, manualLogoutRef, isLogoutPending, Logout]);
 
@@ -100,7 +90,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         setShow={setShow}
         manualLogoutRef={manualLogoutRef}
         isLoading={!hasHydrated || isLogoutPending}
-        Logout={(fromAllDevices) => Logout({ showToast: true, fromAllDevices })}
+        Logout={(fromAllDevices) => Logout({ fromAllDevices })}
       />
 
       <div className="flex relative min-h-[calc(100vh-85px)] gap-2 md:m-2">

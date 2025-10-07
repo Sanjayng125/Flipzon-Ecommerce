@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import useFetch from "@/hooks/useFetch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, Check, ShoppingCartIcon } from "lucide-react";
@@ -20,27 +21,19 @@ import { z } from "zod";
 
 const ForgotPasswordPage = () => {
   const [success, setSuccess] = useState(false);
+  const { api } = useFetch();
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (formData: { email: string }) => {
       setSuccess(false);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/forgot-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-          credentials: "include",
-        }
-      );
+      const res = await api("/users/forgot-password", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
 
-      const data = await res.json();
-
-      if (!data?.success)
-        throw new Error(data?.message || "Something went wrong!");
-      return data;
+      if (!res?.success)
+        throw new Error(res?.message || "Something went wrong!");
+      return res;
     },
     onSuccess: () => {
       setSuccess(true);

@@ -6,8 +6,10 @@ import { persist } from "zustand/middleware";
 
 interface AuthStoreProps {
   user: UserProps | null;
+  token: string | null,
   hasHydrated: boolean;
   setUser: (user: UserProps | null) => void;
+  setToken: (token: string | null) => void;
   clearAuth: () => void;
 }
 
@@ -15,12 +17,15 @@ export const useAuth = create<AuthStoreProps>()(
   persist(
     (set) => ({
       user: null,
+      token: null,
       hasHydrated: false,
 
       setUser: (user) => set({ user }),
+      setToken: (token) => set({ token }),
 
       clearAuth: () => {
         set({ user: null });
+        set({ token: null });
         useAuth.persist.clearStorage();
       },
     }),

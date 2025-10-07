@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSession } from "./utils/auth";
 import { PROTECTED_ROUTES, ROUTES } from "./utils/routes";
+import { getSession } from "./actions/auth";
 
 export async function middleware(req: NextRequest) {
     const token = req.cookies.get(process.env.COOKIE_NAME || "token")?.value;
@@ -26,10 +26,6 @@ export async function middleware(req: NextRequest) {
     if (!user) {
         return handleUnauthorized(req);
     }
-
-    // if (isOnLoginSignupPage) {
-    //     return NextResponse.redirect(new URL("/", req.url));
-    // }
 
     const isUser = user.role === "user";
     const isSeller = user.role === "seller";

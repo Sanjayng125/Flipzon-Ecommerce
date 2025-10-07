@@ -91,18 +91,14 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.cookie(process.env.COOKIE_NAME || "token", accessToken, {
-      httpOnly: true,
-      secure: process.env?.NODE_ENV === "production" ? true : false,
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
     await redis.set(`user:${rest._id}`, JSON.stringify(rest));
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Logged in", user: rest });
+    return res.status(200).json({
+      success: true,
+      message: "Logged in",
+      user: rest,
+      token: accessToken,
+    });
   } catch (error) {
     console.log(error);
     return res
@@ -216,17 +212,7 @@ export const logout = async (req, res) => {
   try {
     const user = req.user;
 
-    const fromAll = req.query["from-all"];
-
-    if (fromAll) {
-      await redis.del(`user:${user._id}`);
-    }
-
-    res.clearCookie(process.env.COOKIE_NAME || "token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
+    await redis.del(`user:${user._id}`);
 
     return res.status(200).json({ success: true, message: "Logged out!" });
   } catch (error) {
@@ -597,7 +583,9 @@ export const resetPassword = async (req, res) => {
       decoded = await jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
       console.log(err);
-      return res.status(401).json({ success: false, message: "Unauthorized!" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Unauthorized!", login: true });
     }
 
     if (decoded && decoded?.id && decoded?.email && decoded?.email === email) {
@@ -625,7 +613,9 @@ export const resetPassword = async (req, res) => {
       }
     }
 
-    return res.status(401).json({ success: false, message: "Unauthorized!" });
+    return res
+      .status(401)
+      .json({ success: false, message: "Unauthorized!", login: true });
   } catch (error) {
     console.log(error);
     return res
@@ -652,12 +642,6 @@ export const deleteAccount = async (req, res) => {
     await Promise.all(clearList);
 
     await User.findByIdAndDelete(id);
-
-    res.clearCookie(process.env.COOKIE_NAME || "token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
 
     await redis.del(`user:${id}`);
 

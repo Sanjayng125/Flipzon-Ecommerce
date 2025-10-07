@@ -14,10 +14,12 @@ import { z } from "zod";
 import { SignupSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCartIcon } from "lucide-react";
+import useFetch from "@/hooks/useFetch";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [haveToVerify, setHaveToVerify] = useState(false);
+  const { api } = useFetch();
 
   const form = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
@@ -31,22 +33,13 @@ export default function RegisterPage() {
 
   const handleSignupMutation = useMutation({
     mutationFn: async (formData: z.infer<typeof SignupSchema>) => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/sign-up`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-          credentials: "include",
-        }
-      );
+      const res = await api("/users/sign-up", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
 
-      const data = await res.json();
-
-      if (!data?.success) throw new Error(data?.message || "Signup failed");
-      return data;
+      if (!res?.success) throw new Error(res?.message || "Signup failed");
+      return res;
     },
     onSuccess: (res) => {
       if (res?.to_verify) {

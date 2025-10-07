@@ -5,47 +5,56 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useAddress } from "./useAddress";
 import { useCart } from "./cart/useCart";
+import { getToken, logout as logoutAction } from "@/actions/auth";
 
 const useFetch = () => {
-  const { clearAuth, user, hasHydrated } = useAuth();
+  const { clearAuth, user, hasHydrated, token, setToken } = useAuth();
   const { clearCart } = useCart();
   const { clearAddress } = useAddress();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  async function login() {
+  async function logout() {
     clearAuth();
     clearCart();
     clearAddress();
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
     queryClient.clear();
+    await logoutAction();
     router.replace("/login");
   }
 
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     if (hasHydrated && !user) {
-      return login();
+      return logout();
+    }
+
+    let accessToken = token;
+
+    if (!accessToken) {
+      accessToken = await getToken();
+      if (!accessToken) {
+        logout();
+        return { success: false, message: "Session expired!" };
+      }
+      setToken(accessToken);
     }
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api${url}`, {
       ...options,
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+        'ngrok-skip-browser-warning': 'true',
         ...options.headers,
       },
     });
-
-    // if (!res.ok) throw new Error(res.statusText || "Something went wrong");
 
     const data = await res.json();
 
     // If session expired, log out & redirect
     if (data?.login || res.headers.get("x-clear-session") === "true") {
-      return login();
+      logout();
+      return { success: false, message: "Session expired!" };
     }
 
     return data;
@@ -56,6 +65,7 @@ const useFetch = () => {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        'ngrok-skip-browser-warning': 'true',
         ...options.headers,
       },
     });
@@ -64,15 +74,14 @@ const useFetch = () => {
 
     // If session expired, log out & redirect
     if (data?.login || res.headers.get("x-clear-session") === "true") {
-      return login();
+      logout();
+      return { success: false, message: "Session expired!" };
     }
-
-    // if (!res.ok) throw new Error(data?.message || "Something went wrong");
 
     return data;
   };
 
-  return { fetchWithAuth, api, login };
+  return { fetchWithAuth, api, logout };
 };
 
 export default useFetch;

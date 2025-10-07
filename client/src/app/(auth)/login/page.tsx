@@ -15,12 +15,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { InputField } from "@/components/forms/fields/InputField";
 import { ShoppingCartIcon } from "lucide-react";
+import { login } from "@/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [haveToVerify, setHaveToVerify] = useState(false);
   const queryClient = useQueryClient();
-  const { setUser } = useAuth();
+  const { setUser, setToken } = useAuth();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -32,22 +33,9 @@ export default function LoginPage() {
 
   const handleLoginMutation = useMutation({
     mutationFn: async (formData: z.infer<typeof LoginSchema>) => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-          credentials: "include",
-        }
-      );
+      const res = await login(formData.email, formData.password);
 
-      const data = await res.json();
-
-      if (!data?.success) throw new Error(data?.message || "Login failed");
-      return data;
+      return res;
     },
     onSuccess: (res) => {
       if (res?.to_verify) {
@@ -57,9 +45,10 @@ export default function LoginPage() {
       }
 
       setUser(res.user);
+      setToken(res.token);
       if (res.user.role === "user") {
-        queryClient.invalidateQueries({ queryKey: ["get-cart"] });
-        queryClient.invalidateQueries({ queryKey: ["get-my-addresses"] });
+        queryClient.fetchQuery({ queryKey: ["get-cart"] });
+        queryClient.fetchQuery({ queryKey: ["get-my-addresses"] });
         router.push("/");
       }
       if (res.user.role === "seller") {
