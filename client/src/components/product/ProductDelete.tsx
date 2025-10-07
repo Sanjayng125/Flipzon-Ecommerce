@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import useFetch from "@/hooks/useFetch";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -21,6 +21,7 @@ interface ProductDeleteProps {
 export const ProductDelete = ({ productId, refetch }: ProductDeleteProps) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { fetchWithAuth } = useFetch();
+  const queryClient = useQueryClient();
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -37,6 +38,8 @@ export const ProductDelete = ({ productId, refetch }: ProductDeleteProps) => {
     onSuccess: (res) => {
       toast.success(res?.message || "Product deleted");
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["get-admin-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["get-seller-overview"] });
       setDeleteOpen(false);
     },
     onError: (err) => {

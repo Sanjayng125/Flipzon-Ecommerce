@@ -35,6 +35,7 @@ export default function AddProductPage() {
       category: "",
       images: [],
       discount: 0,
+      brand: "",
     },
   });
 

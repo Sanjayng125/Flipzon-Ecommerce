@@ -35,6 +35,8 @@ export default function LoginPage() {
     mutationFn: async (formData: z.infer<typeof LoginSchema>) => {
       const res = await login(formData.email, formData.password);
 
+      if (!res?.success) throw new Error(res?.message || "Login failed");
+
       return res;
     },
     onSuccess: (res) => {

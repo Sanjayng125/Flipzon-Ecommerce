@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import useFetch from "@/hooks/useFetch";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import {
@@ -33,6 +33,7 @@ const AdminRequestsPage = () => {
   const [page, setPage] = useState(1);
   const { fetchWithAuth } = useFetch();
   const [rejectOpen, setRejectOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-requests", page, sort],
@@ -80,6 +81,7 @@ const AdminRequestsPage = () => {
     },
     onSuccess: (res) => {
       toast.success(res?.message || "User request approved");
+      queryClient.invalidateQueries({ queryKey: ["get-admin-overview"] });
       refetch();
     },
     onError: (err) => {

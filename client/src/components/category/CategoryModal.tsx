@@ -160,17 +160,18 @@ export const CategoryModal = ({
     }
   };
 
-  const handleOpenChange = () => {
-    if (edit && data) {
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && edit && data) {
       form.reset({
         name: data.name,
-        isFeatured: data.isFeatured,
         parentCategory: data.parentCategory,
+        isFeatured: data.isFeatured,
+        showInCategoryBar: data.showInCategoryBar,
       });
       form.clearErrors();
       setImage(null);
     }
-    setOpen(!open);
+    setOpen(newOpen);
   };
 
   return (

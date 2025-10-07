@@ -7,12 +7,12 @@ import ResetPassword from "../models/ResetPassword.model.js";
 import Review from "../models/Review.model.js";
 import User from "../models/User.model.js";
 import Wishlist from "../models/Wishlist.model.js";
-import cloudinary from "../utils/cloudinary.js";
 import { sendOtp, sendResetPassword } from "../utils/mailSender.js";
 import { generateOTP } from "../utils/otp.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import jwt from "jsonwebtoken";
 import { redis } from "../db/redis.js";
+import { deleteImage } from "../utils/index.js";
 
 export const login = async (req, res) => {
   try {
@@ -76,7 +76,7 @@ export const login = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: "Verification email sent!",
+        message: "Enter the OTP sent to your email to verify your account!",
         to_verify: true,
       });
     }
@@ -441,10 +441,10 @@ export const updateProfile = async (req, res) => {
 
     // delete previous avatar and store logo if exists
     if (updateData?.avatar && userExits?.avatar?.public_id) {
-      await cloudinary.uploader.destroy(userExits.avatar.public_id);
+      await deleteImage(userExits.avatar.public_id);
     }
     if (updateData?.storeLogo && userExits?.storeLogo?.public_id) {
-      await cloudinary.uploader.destroy(userExits.storeLogo.public_id);
+      await deleteImage(userExits.storeLogo.public_id);
     }
 
     const user = await User.findByIdAndUpdate(id, updateData, {
@@ -626,7 +626,7 @@ export const resetPassword = async (req, res) => {
 
 export const deleteAccount = async (req, res) => {
   try {
-    const { _id: id, role } = req.user;
+    const { _id: id, role, avatar } = req.user;
 
     const clearList = [
       Address.deleteMany({ user: id }),
@@ -637,6 +637,9 @@ export const deleteAccount = async (req, res) => {
 
     if (role === "seller") {
       clearList.push(Product.deleteMany({ seller: id }));
+    }
+    if (avatar?.public_id) {
+      clearList.push(deleteImage(avatar.public_id));
     }
 
     await Promise.all(clearList);
@@ -786,16 +789,21 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    if (user.role === "seller") {
-      await Product.deleteMany({ seller: id });
-    }
-
-    await Promise.all([
+    const clearList = [
       Address.deleteMany({ user: id }),
       Review.deleteMany({ user: id }),
       Cart.deleteOne({ user: id }),
       Wishlist.deleteOne({ user: id }),
-    ]);
+    ];
+
+    if (user.role === "seller") {
+      clearList.push(Product.deleteMany({ seller: id }));
+    }
+    if (user.avatar?.public_id) {
+      clearList.push(deleteImage(user.avatar.public_id));
+    }
+
+    await Promise.all(clearList);
 
     await User.findByIdAndDelete(id);
     await redis.del(`user:${id}`);

@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import Category from "../models/Category.model.js";
-import { makeSlug } from "../utils/index.js";
-import cloudinary from "../utils/cloudinary.js";
-import Product from "../models/Product.model.js";
+import { deleteImage, makeSlug } from "../utils/index.js";
 
 export const getCategory = async (req, res) => {
   try {
@@ -200,7 +198,7 @@ export const updateCategory = async (req, res) => {
     }
 
     if (category.image?.public_id && categoryData?.image) {
-      await cloudinary.uploader.destroy(category.image.public_id);
+      await deleteImage(category.image.public_id);
     }
 
     const updatedCategory = await Category.findByIdAndUpdate(id, categoryData, {
@@ -243,7 +241,7 @@ export const deleteCategory = async (req, res) => {
     }
 
     if (category.image?.public_id) {
-      await cloudinary.uploader.destroy(category.image.public_id);
+      await deleteImage(category.image.public_id);
     }
 
     await Category.findByIdAndDelete(id);

@@ -4,7 +4,7 @@ import { checkAspectRatio, deleteImage } from "../utils/index.js";
 
 export const getHeroes = async (req, res) => {
   try {
-    const heros = await Hero.find();
+    const heros = await Hero.find().sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, heros });
   } catch (error) {

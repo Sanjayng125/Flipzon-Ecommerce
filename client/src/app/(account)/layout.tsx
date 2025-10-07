@@ -27,12 +27,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         });
 
         if (res?.success) {
-          logout();
+          await logout();
         }
 
         toast.success(res?.message);
       } else {
-        logout();
+        await logout();
 
         toast.success("Logged out!");
       }
