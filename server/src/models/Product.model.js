@@ -33,6 +33,7 @@ const ProductSchema = new mongoose.Schema(
     },
     brand: {
       type: String,
+      trim: true,
     },
     stock: {
       type: Number,

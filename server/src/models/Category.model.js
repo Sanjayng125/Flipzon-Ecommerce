@@ -13,6 +13,7 @@ const CategorySchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
     },
     parentCategory: {
       type: mongoose.Schema.Types.ObjectId,

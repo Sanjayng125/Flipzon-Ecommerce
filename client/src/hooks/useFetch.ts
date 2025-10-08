@@ -54,7 +54,7 @@ const useFetch = () => {
     // If session expired, log out & redirect
     if (data?.login || res.headers.get("x-clear-session") === "true") {
       logout();
-      return { success: false, message: "Session expired!" };
+      return { success: false, message: data?.message ?? "Session expired!" };
     }
 
     return data;
@@ -75,7 +75,7 @@ const useFetch = () => {
     // If session expired, log out & redirect
     if (data?.login || res.headers.get("x-clear-session") === "true") {
       logout();
-      return { success: false, message: "Session expired!" };
+      return { success: false, message: data?.message ?? "Session expired!" };
     }
 
     return data;

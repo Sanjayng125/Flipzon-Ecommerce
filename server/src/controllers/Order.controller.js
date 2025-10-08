@@ -92,7 +92,7 @@ export const createOrder = async (req, res) => {
         product: product._id,
         seller: product.seller,
         quantity,
-        price,
+        price: Number(price.toFixed(2)),
       });
     }
 
@@ -509,12 +509,8 @@ export const getSellerOrders = async (req, res) => {
     const { page = 1, limit = 10, sort, search } = req.query;
 
     const sortOption = {
-      createdAt: -1,
+      createdAt: sort === "oldest" ? 1 : -1,
     };
-
-    if (sort && sort === "oldest") {
-      sortOption.createdAt = 1;
-    }
 
     const matchStage = {
       "items.seller": sellerId,
@@ -531,7 +527,6 @@ export const getSellerOrders = async (req, res) => {
       {
         $match: matchStage,
       },
-
       {
         $project: {
           _id: 1,
@@ -550,29 +545,7 @@ export const getSellerOrders = async (req, res) => {
         },
       },
 
-      {
-        $lookup: {
-          from: "users",
-          localField: "user.userId",
-          foreignField: "_id",
-          as: "userDetails",
-        },
-      },
-      {
-        $addFields: {
-          user: {
-            email: {
-              $ifNull: [{ $arrayElemAt: ["$userDetails.email", 0] }, "N/A"],
-            },
-            phone: {
-              $ifNull: [{ $arrayElemAt: ["$userDetails.phone", 0] }, "N/A"],
-            },
-            name: {
-              $ifNull: [{ $arrayElemAt: ["$userDetails.name", 0] }, "N/A"],
-            },
-          },
-        },
-      },
+      { $unwind: "$items" },
 
       {
         $lookup: {
@@ -586,32 +559,42 @@ export const getSellerOrders = async (req, res) => {
       {
         $addFields: {
           "items.product": {
-            _id: {
-              $ifNull: [{ $arrayElemAt: ["$productDetails._id", 0] }, null],
-            },
-            name: {
-              $ifNull: [{ $arrayElemAt: ["$productDetails.name", 0] }, "N/A"],
-            },
-            price: {
-              $ifNull: [{ $arrayElemAt: ["$productDetails.price", 0] }, 0],
-            },
-            images: {
-              $ifNull: [{ $arrayElemAt: ["$productDetails.images", 0] }, []],
-            },
-            discount: {
-              $ifNull: [
-                { $arrayElemAt: ["$productDetails.discount", 0] },
-                null,
-              ],
-            },
+            $cond: [
+              { $gt: [{ $size: "$productDetails" }, 0] },
+              {
+                _id: { $arrayElemAt: ["$productDetails._id", 0] },
+                name: { $arrayElemAt: ["$productDetails.name", 0] },
+                price: { $arrayElemAt: ["$productDetails.price", 0] },
+                images: { $arrayElemAt: ["$productDetails.images", 0] },
+                discount: { $arrayElemAt: ["$productDetails.discount", 0] },
+              },
+              {
+                _id: null,
+                name: "N/A",
+                price: 0,
+                images: [],
+                discount: null,
+              },
+            ],
           },
         },
       },
 
       {
         $project: {
-          userDetails: 0,
           productDetails: 0,
+        },
+      },
+
+      {
+        $group: {
+          _id: "$_id",
+          user: { $first: "$user" },
+          shippingAddress: { $first: "$shippingAddress" },
+          paymentStatus: { $first: "$paymentStatus" },
+          paymentMethod: { $first: "$paymentMethod" },
+          createdAt: { $first: "$createdAt" },
+          items: { $push: "$items" },
         },
       },
 
@@ -621,22 +604,21 @@ export const getSellerOrders = async (req, res) => {
     ]);
 
     const orders = result;
-    const totalOrders = await Order.countDocuments({
-      ...matchStage,
-    });
+    const totalOrders = await Order.countDocuments(matchStage);
 
     return res.status(200).json({
       success: true,
       orders,
       totalOrders,
-      currentPage: page,
-      totalPages: Math.ceil(totalOrders / limit),
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalOrders / Number(limit)),
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong" });
+    console.error("getSellerOrders error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
   }
 };
 
@@ -721,20 +703,7 @@ export const getSellerActiveOrders = async (req, res) => {
           },
         },
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "user.userId",
-          foreignField: "_id",
-          as: "userDetails",
-        },
-      },
-      {
-        $addFields: {
-          "user.name": { $arrayElemAt: ["$userDetails.name", 0] },
-        },
-      },
-      { $project: { productDetails: 0, userDetails: 0 } },
+      { $project: { productDetails: 0 } },
       {
         $group: {
           _id: "$_id",
@@ -825,7 +794,64 @@ export const getAllOrders = async (req, res) => {
         { $sort: sortStage },
         { $skip: skip },
         { $limit: limitNum },
+
+        { $unwind: "$items" },
+
+        {
+          $lookup: {
+            from: "products",
+            localField: "items.product",
+            foreignField: "_id",
+            as: "productDetails",
+          },
+        },
+        {
+          $addFields: {
+            "items.product": {
+              $cond: [
+                { $gt: [{ $size: "$productDetails" }, 0] },
+                {
+                  _id: { $arrayElemAt: ["$productDetails._id", 0] },
+                  name: { $arrayElemAt: ["$productDetails.name", 0] },
+                  price: { $arrayElemAt: ["$productDetails.price", 0] },
+                  images: { $arrayElemAt: ["$productDetails.images", 0] },
+                  discount: { $arrayElemAt: ["$productDetails.discount", 0] },
+                },
+                {
+                  _id: null,
+                  name: "Product not found",
+                  price: 0,
+                  images: [],
+                  discount: null,
+                },
+              ],
+            },
+          },
+        },
+
+        {
+          $project: {
+            productDetails: 0,
+          },
+        },
+
+        {
+          $group: {
+            _id: "$_id",
+            user: { $first: "$user" },
+            totalAmount: { $first: "$totalAmount" },
+            paymentStatus: { $first: "$paymentStatus" },
+            paymentMethod: { $first: "$paymentMethod" },
+            shippingAddress: { $first: "$shippingAddress" },
+            createdAt: { $first: "$createdAt" },
+            updatedAt: { $first: "$updatedAt" },
+            items: { $push: "$items" },
+          },
+        },
+
+        { $sort: sortStage },
       ]),
+
       Order.countDocuments(matchStage),
     ]);
 
@@ -839,10 +865,11 @@ export const getAllOrders = async (req, res) => {
       totalOrders,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Something went wrong!" });
+    console.error("getAllOrders error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong!",
+    });
   }
 };
 

@@ -156,9 +156,8 @@ export const signup = async (req, res) => {
       }
 
       return res.status(200).json({
-        success: true,
+        success: false,
         message: "Account already exists please login!",
-        login: true,
       });
     }
 

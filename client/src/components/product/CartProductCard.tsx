@@ -19,7 +19,7 @@ interface CartProductCardProps {
   updateQty?: ({ productId, qty }: { productId: string; qty: number }) => void;
   isLoading: boolean;
   removeProduct?: (id: string) => void;
-  saveToWishlist?: (id: string) => void;
+  saveToWishlist: (id: string) => void;
 }
 
 export const CartProductCard = ({
@@ -78,7 +78,11 @@ export const CartProductCard = ({
               updateQty({ productId: product._id, qty: Number(val) })
             }
           >
-            <SelectTrigger size="sm" disabled={isLoading}>
+            <SelectTrigger
+              size="sm"
+              disabled={isLoading}
+              className="cursor-pointer"
+            >
               Qty: <SelectValue placeholder={quantity} />
             </SelectTrigger>
             <SelectContent className="bg-white">
@@ -107,8 +111,9 @@ export const CartProductCard = ({
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant={"outline"}
-            onClick={() => saveToWishlist && saveToWishlist(product?._id)}
+            onClick={() => saveToWishlist(product?._id)}
             disabled={isLoading}
+            className="cursor-pointer"
           >
             Save to wishlist{" "}
             {isLoading ? (
@@ -119,7 +124,7 @@ export const CartProductCard = ({
           </Button>
 
           <Button
-            className="bg-red-500 text-white hover:bg-red-700 py-1 px-2 rounded-md"
+            className="bg-red-500 text-white hover:bg-red-700 py-1 px-2 rounded-md cursor-pointer"
             onClick={() => removeProduct && removeProduct(product?._id)}
             disabled={isLoading}
           >

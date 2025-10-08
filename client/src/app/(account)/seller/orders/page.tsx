@@ -25,7 +25,7 @@ const SellerOrdersPage = () => {
   const [status, setStatus] = useState("pending");
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["seller-orders", page, sort, searchQuery],
+    queryKey: ["seller-orders", page, sort, searchQuery, status],
     queryFn: async () => {
       const url =
         status === "all"

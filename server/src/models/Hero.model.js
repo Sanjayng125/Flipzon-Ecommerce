@@ -4,6 +4,7 @@ const heroSchema = new mongoose.Schema(
   {
     heroLink: {
       type: String,
+      trim: true,
     },
     image: {
       public_id: { type: String, required: true },

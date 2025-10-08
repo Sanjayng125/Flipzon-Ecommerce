@@ -16,7 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingCartIcon } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 
-export default function RegisterPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [haveToVerify, setHaveToVerify] = useState(false);
   const { api } = useFetch();

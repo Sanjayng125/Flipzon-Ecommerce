@@ -29,7 +29,7 @@ export const OrderCard = ({ order }: OrderCardProps) => {
               alt={product?.name ?? "Not found"}
               width={50}
               height={50}
-              className="w-14 h-14 object-contain"
+              className="w-16 h-16 object-contain bg-white px-0.5 rounded-md border border-border-default"
             />
           ))}
           {remainingCount > 0 && (
@@ -40,7 +40,7 @@ export const OrderCard = ({ order }: OrderCardProps) => {
         </div>
 
         <div className="ml-4 flex flex-col justify-between">
-          <p className="text-sm font-semibold line-clamp-1">
+          <p className="text-sm font-semibold line-clamp-2">
             {order.items.map(({ product }) => product.name).join(", ")}
           </p>
           <p className="text-sm text-gray-600">Total: ₹{order.totalAmount}</p>

@@ -12,7 +12,7 @@ export const FeaturedCategories = () => {
   const { data: categories, isPending } = useQuery<Category[]>({
     queryKey: ["get-featured-categories"],
     queryFn: async () => {
-      const res = await api("/categories/featured");
+      const res = await api("/categories/featured?sort=oldest");
 
       if (res?.success) return res?.categories;
       return [];

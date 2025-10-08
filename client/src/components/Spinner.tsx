@@ -8,7 +8,7 @@ interface SpinnerProps {
 
 export const Spinner = ({ className, spinnerClassName }: SpinnerProps) => {
   return (
-    <div className={`flex justify-center items-center ${className}`}>
+    <div className={`flex justify-center items-center my-1 ${className}`}>
       <Loader2 className={`size-10 animate-spin ${spinnerClassName}`} />
     </div>
   );

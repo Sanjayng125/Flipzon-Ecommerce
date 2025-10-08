@@ -16,12 +16,14 @@ interface CancelOrderProps {
   orderId: string;
   itemId: string;
   isSeller?: boolean;
+  disabled?: boolean;
 }
 
 export const CancelOrder = ({
   orderId,
   itemId,
   isSeller = false,
+  disabled = false,
 }: CancelOrderProps) => {
   const [open, setOpen] = React.useState(false);
   const { fetchWithAuth } = useFetch();
@@ -58,7 +60,7 @@ export const CancelOrder = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild className="w-max">
+      <DialogTrigger asChild className="w-max" disabled={disabled}>
         <Button variant="destructive" color="red">
           Cancel Order
         </Button>

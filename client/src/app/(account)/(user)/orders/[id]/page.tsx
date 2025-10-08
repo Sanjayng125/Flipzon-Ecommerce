@@ -11,6 +11,7 @@ import { NOT_FOUND_IMAGE } from "@/utils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
+import Link from "next/link";
 
 const OrderPage = () => {
   const { fetchWithAuth } = useFetch();
@@ -65,45 +66,49 @@ const OrderPage = () => {
       >
         <div>
           {order.items.map((item) => (
-            <div key={item.product._id} className="mb-3">
-              <div className="flex flex-col gap-3 justify-center">
-                <Image
-                  src={item.product?.images?.[0]?.url ?? NOT_FOUND_IMAGE}
-                  alt={item.product?.name ?? "Not found"}
-                  width={60}
-                  height={60}
-                  className="rounded w-32 h-32 object-contain"
-                />
-                <div>
-                  <p className="font-semibold line-clamp-2">
-                    {item.product?.name ?? "Product not found!"}
-                  </p>
-                  <p>Price: ₹{item.price}</p>
-                  <p>Quantity: {item.quantity}</p>
+            <div
+              key={item.product._id}
+              className="flex flex-col gap-3 justify-center mb-3"
+            >
+              <Image
+                src={item.product?.images?.[0]?.url ?? NOT_FOUND_IMAGE}
+                alt={item.product?.name ?? "Not found"}
+                width={60}
+                height={60}
+                className="rounded w-32 h-32 object-contain"
+              />
+              <div>
+                <Link
+                  href={`/products/${item.product._id}`}
+                  className="font-semibold line-clamp-2 text-black! hover:underline!"
+                >
+                  {item.product?.name ?? "Product not found!"}
+                </Link>
+                <p>Price: ₹{item.price}</p>
+                <p>Quantity: {item.quantity}</p>
+                <p className="font-semibold">
+                  Total: ₹{item.price * item.quantity}
+                </p>
+                <p>Seller: {item.seller.name}</p>
+                <p>Tracking Number: {item.trackingNumber ?? "N/A"}</p>
+                {item.status === "cancelled" ? (
                   <p className="font-semibold">
-                    Total: ₹{item.price * item.quantity}
+                    Status:{" "}
+                    <Tag color="red" className="uppercase">
+                      {item.status}
+                    </Tag>
                   </p>
-                  <p>Seller: {item.seller.name}</p>
-                  <p>Tracking Number: {item.trackingNumber ?? "N/A"}</p>
-                  {item.status === "cancelled" ? (
-                    <p className="font-semibold">
-                      Status:{" "}
-                      <Tag color="red" className="uppercase">
-                        {item.status}
-                      </Tag>
-                    </p>
-                  ) : (
-                    <div className="mt-2">
-                      <OrderStatus status={item.status} />
-                    </div>
-                  )}
-                </div>
-                {item.status !== "delivered" &&
-                  item.status !== "cancelled" &&
-                  item.status !== "shipped" && (
-                    <CancelOrder orderId={order._id} itemId={item._id} />
-                  )}
+                ) : (
+                  <div className="mt-2">
+                    <OrderStatus status={item.status} />
+                  </div>
+                )}
               </div>
+              {item.status !== "delivered" &&
+                item.status !== "cancelled" &&
+                item.status !== "shipped" && (
+                  <CancelOrder orderId={order._id} itemId={item._id} />
+                )}
             </div>
           ))}
         </div>

@@ -138,7 +138,7 @@ export const cashfreeVerifyPayment = async (req, res) => {
   }
 };
 
-export const cashfreeWebhook = async (req, res) => {
+export const cashfreePaymentWebhook = async (req, res) => {
   try {
     try {
       await Cashfree.PGVerifyWebhookSignature(
@@ -148,7 +148,7 @@ export const cashfreeWebhook = async (req, res) => {
       );
     } catch (error) {
       console.error("Cashfree Webhook Signature Error:", error?.message);
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         message: "Webhook Signature Verification failed",
       });
@@ -158,7 +158,7 @@ export const cashfreeWebhook = async (req, res) => {
 
     if (!data || !data.order || !data.payment) {
       return res
-        .status(400)
+        .status(200)
         .json({ success: false, message: "Invalid webhook payload" });
     }
 
@@ -168,7 +168,7 @@ export const cashfreeWebhook = async (req, res) => {
     const order = await Order.findById(order_id);
     if (!order) {
       return res
-        .status(404)
+        .status(200)
         .json({ success: false, message: "Order not found" });
     }
 
@@ -227,7 +227,7 @@ export const cashfreeWebhook = async (req, res) => {
       });
     }
 
-    return res.status(400).json({
+    return res.status(200).json({
       success: false,
       message: `Unhandled payment status: ${payment_status}`,
     });
@@ -250,7 +250,7 @@ export const cashfreeRefundWebhook = async (req, res) => {
       );
     } catch (error) {
       console.error("Cashfree Refund Webhook Signature Error:", error?.message);
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         message: "Refund Webhook Signature Verification failed",
       });
@@ -258,7 +258,7 @@ export const cashfreeRefundWebhook = async (req, res) => {
 
     const { data } = JSON.parse(req.rawBody) || req.body;
     if (!data || !data.refund) {
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         message: "Invalid refund webhook payload",
       });
@@ -269,7 +269,7 @@ export const cashfreeRefundWebhook = async (req, res) => {
     const order = await Order.findById(order_id);
     if (!order) {
       return res
-        .status(404)
+        .status(200)
         .json({ success: false, message: "Order not found" });
     }
 
@@ -278,7 +278,7 @@ export const cashfreeRefundWebhook = async (req, res) => {
     );
     if (itemIndex === -1) {
       return res
-        .status(404)
+        .status(200)
         .json({ success: false, message: "Refunded item not found in order" });
     }
 

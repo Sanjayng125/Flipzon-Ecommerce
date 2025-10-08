@@ -10,31 +10,38 @@ const AddressSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: true,
+      trim: true,
     },
     phoneNumber: {
       type: String,
       required: true,
+      trim: true,
     },
     streetAddress: {
       type: String,
       required: true,
+      trim: true,
     },
     city: {
       type: String,
       required: true,
+      trim: true,
     },
     state: {
       type: String,
       required: true,
+      trim: true,
     },
     postalCode: {
       type: String,
       required: true,
+      trim: true,
     },
     country: {
       type: String,
       required: true,
       default: "india", // Change if your app is international
+      trim: true,
     },
     isDefault: {
       type: Boolean,

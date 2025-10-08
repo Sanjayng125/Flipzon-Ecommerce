@@ -12,10 +12,12 @@ const UserSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
       required: true,
+      trim: true,
     },
     avatar: {
       public_id: {
@@ -40,8 +42,12 @@ const UserSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
+      trim: true,
     },
-    storeName: String,
+    storeName: {
+      type: String,
+      trim: true,
+    },
     storeLogo: {
       public_id: {
         type: String,
@@ -53,7 +59,10 @@ const UserSchema = new mongoose.Schema(
           "https://res.cloudinary.com/dnugvoy3m/image/upload/v1742911438/flipzon-ecommerce/defaults/default-store_czgdax.png",
       },
     },
-    storeDescription: String,
+    storeDescription: {
+      type: String,
+      trim: true,
+    },
     isSellerApproved: {
       type: Boolean,
       default: false,
