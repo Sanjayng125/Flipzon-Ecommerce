@@ -17,9 +17,9 @@ export const FeaturedCategoryCard = ({
           width={80}
           height={80}
           alt="Category img"
-          className="min-w-20 min-h-20 rounded-full object-cover"
+          className="min-w-20 min-h-20 rounded-full object-cover bg-white border-2 border-border-default"
         />
-        <p className="font-semibold text-sm text-center truncate w-full text-clip">
+        <p className="font-semibold text-sm text-center truncate w-full">
           {category.name}
         </p>
       </div>

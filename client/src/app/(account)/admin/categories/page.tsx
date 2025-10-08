@@ -128,7 +128,7 @@ const AdminCategoriesPage = () => {
                 alt="Category"
                 width={100}
                 height={100}
-                className="w-2/3 p-2 place-self-center aspect-square"
+                className="w-2/3 p-2 place-self-center aspect-square object-contain"
               />
               <p className="font-semibold px-2 text-lg truncate">{cat.name}</p>
               <div className="flex items-center border-t">

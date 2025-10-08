@@ -41,7 +41,7 @@ export const FeaturedCategories = () => {
   return (
     <div className="bg-white p-2 mt-2 rounded-md">
       <h2 className="font-semibold text-xl">Featured Categories</h2>
-      <div className="w-full py-2 gap-1 flex items-center overflow-x-auto hide-scrollbar">
+      <div className="w-full py-2 gap-1 flex items-center justify-evenly overflow-x-auto hide-scrollbar">
         {categories.map((category) => (
           <FeaturedCategoryCard category={category} key={category._id} />
         ))}

@@ -36,7 +36,7 @@ export const getAllCategories = async (req, res) => {
       showInCategoryBar,
     } = req.query;
 
-    const sortOption = {
+    let sortOption = {
       createdAt: -1,
     };
 
@@ -52,11 +52,13 @@ export const getAllCategories = async (req, res) => {
 
     if (showInCategoryBar && showInCategoryBar === "true") {
       filter.showInCategoryBar = true;
+      sortOption = {
+        updatedAt: -1,
+      };
       if (sort && sort === "oldest") {
-        sortOption.updatedAt = 1;
-      }
-      if (sort && sort === "latest") {
-        sortOption.updatedAt = -1;
+        sortOption = {
+          updatedAt: 1,
+        };
       }
     }
 
@@ -84,9 +86,19 @@ export const getAllCategories = async (req, res) => {
 
 export const getAllFeaturedCategories = async (req, res) => {
   try {
+    const { sort } = req.query;
+
+    let sortOption = {
+      updatedAt: -1,
+    };
+
+    if (sort && sort === "oldest") {
+      sortOption.updatedAt = 1;
+    }
+
     const categories = await Category.find({
       isFeatured: true,
-    });
+    }).sort(sortOption);
 
     return res.status(200).json({ success: true, categories });
   } catch (error) {

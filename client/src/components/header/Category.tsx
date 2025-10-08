@@ -15,7 +15,7 @@ export const Category = () => {
     queryKey: ["get-categories-bar"],
     queryFn: async () => {
       const res = await api(
-        "/categories?showInCategoryBar=true&sort=oldest&limit=15"
+        "/categories?showInCategoryBar=true&sort=oldest&limit=30"
       );
       if (!res?.success) {
         throw new Error(res?.message);

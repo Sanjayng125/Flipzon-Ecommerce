@@ -168,9 +168,10 @@ export const CategoryModal = ({
         isFeatured: data.isFeatured,
         showInCategoryBar: data.showInCategoryBar,
       });
-      form.clearErrors();
-      setImage(null);
     }
+
+    form.clearErrors();
+    setImage(null);
     setOpen(newOpen);
   };
 
@@ -315,7 +316,7 @@ export const CategoryModal = ({
                 disabled={
                   addCategoryMutation.isPending ||
                   updateCategoryMutation.isPending ||
-                  (edit && !form.formState.isDirty) ||
+                  (edit && !form.formState.isDirty && !image) ||
                   (!edit && !form.formState.isValid)
                 }
               >
