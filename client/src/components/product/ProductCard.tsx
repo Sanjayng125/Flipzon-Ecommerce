@@ -72,7 +72,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </h2>
         </div>
       </Link>
-      <div className="w-full grid sm:p-2">
+      <div className="w-full grid p-1 sm:p-2">
         <AddToCartBtn productId={product._id} />
       </div>
     </div>

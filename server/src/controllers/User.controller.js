@@ -169,6 +169,7 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
+      isVerified: true, // <------ Remove this when you verify your domain at Resend.
     });
     if (!newUser) {
       return res
@@ -177,21 +178,24 @@ export const signup = async (req, res) => {
     }
 
     // Create OTP entry
-    const newOtp = await Otp.create({ email, otp: generatedOtp });
-    if (!newOtp) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to generate OTP. Try again later!",
-      });
-    }
+    // Remove this if block too, when you verify your domain at Resend.
+    if (!newUser.isVerified) {
+      const newOtp = await Otp.create({ email, otp: generatedOtp });
+      if (!newOtp) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to generate OTP. Try again later!",
+        });
+      }
 
-    // Send OTP verification email
-    const sendOtpResponse = await sendOtp(email, newOtp.otp);
-    if (sendOtpResponse?.error) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send OTP. Try again later!",
-      });
+      // Send OTP verification email
+      const sendOtpResponse = await sendOtp(email, newOtp.otp);
+      if (sendOtpResponse?.error) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send OTP. Try again later!",
+        });
+      }
     }
 
     return res.status(201).json({
