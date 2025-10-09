@@ -1,5 +1,6 @@
 "use client";
 
+import { RemoveHeroBtn } from "@/components/hero/RemoveHeroBtn";
 import { Spinner } from "@/components/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ const AdminHeroPage = () => {
       const isUnderLimit = sizeInMB <= 5;
 
       if (!isCorrectAspect) {
-        toast.error("Image aspect ratio should be approximately 3:1");
+        toast.error("Image aspect ratio should be 3:1");
         return;
       }
 
@@ -121,31 +122,6 @@ const AdminHeroPage = () => {
     },
   });
 
-  const removeHeroMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!id) {
-        throw new Error("Hero ID is required!");
-      }
-
-      const apiRes = await fetchWithAuth(`/hero/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!apiRes?.success) {
-        throw new Error(apiRes?.message || "Failed to remove Hero!");
-      }
-
-      return apiRes;
-    },
-    onSuccess: (res) => {
-      toast.success(res?.message || "Hero removed!");
-      refetch();
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to remove Hero!");
-    },
-  });
-
   return (
     <div className="w-full p-2">
       <h1 className="text-2xl font-semibold mb-2">Manage Hero Section</h1>
@@ -158,18 +134,18 @@ const AdminHeroPage = () => {
             type="url"
             value={heroLink}
             onChange={(e) => setHeroLink(e.target.value)}
-            disabled={addHeroMutation.isPending || removeHeroMutation.isPending}
+            disabled={addHeroMutation.isPending}
             className="disabled:opacity-50"
           />
         </div>
         <div className="flex flex-col space-y-1">
           <Label className="font-semibold flex max-sm:flex-col w-max items-start">
             <span>Hero Image</span>
-            <span>(Allowed Ration: 3:1/1500x500)</span>
+            <span>(Allowed Aspect Ratio: 3:1)</span>
           </Label>
           <button
             className="w-60 h-20 sm:w-72 sm:h-24 rounded-md border-2 border-border-default border-dashed cursor-pointer group flex relative disabled:opacity-50 overflow-hidden"
-            disabled={addHeroMutation.isPending || removeHeroMutation.isPending}
+            disabled={addHeroMutation.isPending}
             onClick={() => inputRef.current?.click()}
           >
             {image ? (
@@ -196,7 +172,7 @@ const AdminHeroPage = () => {
         <Button
           className="w-max bg-sky-700 hover:bg-sky-800 text-white"
           onClick={() => addHeroMutation.mutate()}
-          disabled={addHeroMutation.isPending || removeHeroMutation.isPending}
+          disabled={addHeroMutation.isPending}
         >
           <span>{addHeroMutation.isPending ? "Adding..." : "Add"}</span>
         </Button>
@@ -219,7 +195,7 @@ const AdminHeroPage = () => {
                 />
                 <div className="flex flex-col">
                   <span className="text-sm text-muted-foreground">
-                    Hero Link
+                    Hero Link:
                   </span>
                   <a
                     href={hero.heroLink}
@@ -232,17 +208,11 @@ const AdminHeroPage = () => {
                 </div>
               </div>
 
-              <Button
-                onClick={() => removeHeroMutation.mutate(hero._id)}
-                variant={"destructive"}
-                size={"sm"}
-                disabled={
-                  addHeroMutation.isPending || removeHeroMutation.isPending
-                }
-                className="w-max"
-              >
-                {removeHeroMutation.isPending ? "Removing..." : "Remove"}
-              </Button>
+              <RemoveHeroBtn
+                hero={hero}
+                isLoading={addHeroMutation.isPending}
+                onSuccess={refetch}
+              />
             </div>
           ))}
         </div>

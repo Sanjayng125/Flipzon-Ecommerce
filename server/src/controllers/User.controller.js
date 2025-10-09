@@ -200,8 +200,9 @@ export const signup = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Account created. Verification email sent!",
-      to_verify: true,
+      // message: "Account created. Verification email sent!", // <------ Use this when you verify your domain at Resend.
+      message: "Account created. You can now login!",
+      to_verify: false, // <------ true when you verify your domain at Resend.
     });
   } catch (error) {
     console.log(error);

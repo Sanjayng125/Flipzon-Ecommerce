@@ -81,7 +81,7 @@ export const Delivery = ({
   return (
     <DropdownMenu open={open} onOpenChange={(newOpen) => setOpen(newOpen)}>
       <DropdownMenuTrigger asChild disabled={disabled}>
-        <div className="bg-white px-2 sm:px-4 mb-1">
+        <div className="w-max bg-white mx-2 sm:mx-4 mb-1 cursor-pointer">
           {isLoading && (
             <Skeleton className="rounded-full w-48 h-6 bg-skeleton shrink-0" />
           )}
