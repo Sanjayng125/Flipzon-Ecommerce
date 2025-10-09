@@ -2,13 +2,12 @@
 
 import { CartProductCard } from "@/components/product/CartProductCard";
 import { useAuth } from "@/hooks/useAuth";
-import { useCart } from "@/hooks/cart/useCart";
+import { useCart } from "@/hooks/useCart";
 import useFetch from "@/hooks/useFetch";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import React, { useMemo } from "react";
-import { useCartActions } from "@/hooks/cart/useCartActions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAddress } from "@/hooks/useAddress";
@@ -18,10 +17,69 @@ const CartPage = () => {
   const { user } = useAuth();
   const { setCart } = useCart();
   const { fetchWithAuth } = useFetch();
-  const { updateQtyMutation, removeProductMutation, saveToWishlistMutation } =
-    useCartActions();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { Addresses } = useAddress();
+
+  const updateQtyMutation = useMutation({
+    mutationFn: async ({
+      productId,
+      qty,
+    }: {
+      productId: string;
+      qty: number;
+    }) => {
+      if (!qty || isNaN(qty) || qty < 1 || qty > 3) {
+        return toast.error("Quantity must be between 1 and 3!");
+      }
+      const res = await fetchWithAuth(`/cart/${productId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ qty }),
+      });
+      if (!res?.success)
+        throw new Error(res?.message || "Failed to update quantity!");
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(res.message);
+      queryClient.invalidateQueries({ queryKey: ["get-cart"] });
+      setCart(res.data?.cart);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const removeProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetchWithAuth(`/cart/${productId}`, {
+        method: "DELETE",
+      });
+      if (!res?.success)
+        throw new Error(res?.message || "Failed to remove product!");
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(res.message);
+      queryClient.invalidateQueries({ queryKey: ["get-cart"] });
+      setCart(res.data?.cart);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const saveToWishlistMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetchWithAuth(`/wishlist/${productId}`, {
+        method: "POST",
+      });
+      if (!res?.success)
+        throw new Error(res?.message || "Failed to add product to wishlist!");
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(res.message);
+      queryClient.invalidateQueries({ queryKey: ["get-wishlist"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const { data: cart, isLoading: isCartLoading } = useQuery<Cart>({
     queryKey: ["get-cart"],

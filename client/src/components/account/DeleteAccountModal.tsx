@@ -15,7 +15,7 @@ import useFetch from "@/hooks/useFetch";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAddress } from "@/hooks/useAddress";
-import { useCart } from "@/hooks/cart/useCart";
+import { useCart } from "@/hooks/useCart";
 import { Input } from "../ui/input";
 
 interface DeleteAccountModalProps {

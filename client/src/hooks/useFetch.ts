@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useAddress } from "./useAddress";
-import { useCart } from "./cart/useCart";
+import { useCart } from "./useCart";
 import { getToken, logout as logoutAction } from "@/actions/auth";
 
 const useFetch = () => {

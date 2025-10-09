@@ -111,7 +111,7 @@ const AdminRequestsPage = () => {
 
   return (
     <div className="w-full p-2">
-      <h1 className="text-2xl font-semibold mb-2">Manage Users</h1>
+      <h1 className="text-2xl font-semibold mb-2">Manage Seller Requests</h1>
 
       <div className="w-full border p-2 rounded-lg flex flex-col gap-2 my-2">
         <Input

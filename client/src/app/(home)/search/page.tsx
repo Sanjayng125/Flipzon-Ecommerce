@@ -1,6 +1,7 @@
 "use client";
 
 import { InfiniteScroll } from "@/components/data_fetching/InfiniteScroll";
+import { GoToTopBtn } from "@/components/home/GoToTopBtn";
 import { SearchProductCard } from "@/components/product/SearchProductCard";
 import { Filters } from "@/components/search/filters";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,6 +94,8 @@ const SearchPage = () => {
           )}
         </div>
       </div>
+
+      <GoToTopBtn />
     </div>
   );
 };

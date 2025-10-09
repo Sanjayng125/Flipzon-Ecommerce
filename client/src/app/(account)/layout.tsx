@@ -79,10 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return <Spinner className="min-h-screen" />;
   }
 
-  if (!user)
-    return (
-      <div className="flex flex-col min-h-screen bg-layout overflow-hidden" />
-    );
+  if (!user) return <Spinner className="min-h-screen" />;
 
   return (
     <div className="flex flex-col min-h-screen bg-layout overflow-hidden">

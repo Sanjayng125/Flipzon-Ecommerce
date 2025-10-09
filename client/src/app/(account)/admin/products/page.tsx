@@ -13,12 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import useFetch from "@/hooks/useFetch";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const AdminProductsPage = () => {
-  const { api, fetchWithAuth } = useFetch();
+  const { api } = useFetch();
   const [sort, setSort] = useState("latest");
   const [featured, setFeatured] = useState(false);
   const [category, setCategory] = useState("");
@@ -48,25 +48,6 @@ const AdminProductsPage = () => {
     refetchOnReconnect: false,
     retry: false,
   });
-
-  const { mutate: updateFeaturedMutation, isPending: updateFeaturedIsLoading } =
-    useMutation({
-      mutationFn: async (id: string) => {
-        const res = await fetchWithAuth(`/products/featured/${id}`, {
-          method: "PATCH",
-        });
-
-        if (!res?.success) {
-          toast.error(res?.message || "Failed to update featured!");
-        }
-
-        return res;
-      },
-      onSuccess: (res) => {
-        toast.success(res?.message);
-        refetch();
-      },
-    });
 
   useEffect(() => {
     if (sort || category || category === "") {
@@ -146,8 +127,6 @@ const AdminProductsPage = () => {
               product={product}
               refetch={refetch}
               key={product._id}
-              updateFeatured={updateFeaturedMutation}
-              isLoading={updateFeaturedIsLoading}
             />
           ))}
         </div>

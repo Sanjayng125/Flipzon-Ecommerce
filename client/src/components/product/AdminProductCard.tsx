@@ -1,23 +1,45 @@
+"use client";
+
 import Image from "next/image";
 import React from "react";
 import { ProductDelete } from "../product/ProductDelete";
 import { Loader2 } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { getPlainDescription } from "@/utils";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import useFetch from "@/hooks/useFetch";
 
 interface AdminProductCardProps {
   product: Product;
   refetch: () => void;
-  isLoading?: boolean;
-  updateFeatured: (id: string) => void;
 }
 
 export const AdminProductCard = ({
   product,
   refetch,
-  updateFeatured,
-  isLoading,
 }: AdminProductCardProps) => {
+  const { fetchWithAuth } = useFetch();
+
+  const { mutate: updateFeaturedMutation, isPending: updateFeaturedIsLoading } =
+    useMutation({
+      mutationFn: async (id: string) => {
+        const res = await fetchWithAuth(`/products/featured/${id}`, {
+          method: "PATCH",
+        });
+
+        if (!res?.success) {
+          toast.error(res?.message || "Failed to update featured!");
+        }
+
+        return res;
+      },
+      onSuccess: (res) => {
+        toast.success(res?.message);
+        refetch();
+      },
+    });
+
   return (
     <div
       key={product._id}
@@ -71,10 +93,10 @@ export const AdminProductCard = ({
         <p>IsFeatured?:</p>
         <Switch
           checked={product.isFeatured}
-          disabled={isLoading}
-          onCheckedChange={() => updateFeatured(product._id)}
+          disabled={updateFeaturedIsLoading}
+          onCheckedChange={() => updateFeaturedMutation(product._id)}
         />
-        {isLoading && <Loader2 className="animate-spin size-5" />}
+        {updateFeaturedIsLoading && <Loader2 className="animate-spin size-5" />}
       </div>
 
       <ProductDelete productId={product._id} refetch={refetch} />

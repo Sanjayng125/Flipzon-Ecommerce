@@ -54,7 +54,7 @@ const AdminHeroPage = () => {
       const aspectRatio = width / height;
       const sizeInMB = file.size / (1024 * 1024);
 
-      const isCorrectAspect = Math.abs(aspectRatio - 3) < 0.1;
+      const isCorrectAspect = Math.abs(aspectRatio - 3) < 0.05;
       const isUnderLimit = sizeInMB <= 5;
 
       if (!isCorrectAspect) {

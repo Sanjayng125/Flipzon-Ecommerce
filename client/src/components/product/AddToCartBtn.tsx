@@ -4,8 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import React from "react";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { useCart } from "@/hooks/cart/useCart";
-import { useCartActions } from "@/hooks/cart/useCartActions";
+import { useCart } from "@/hooks/useCart";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import useFetch from "@/hooks/useFetch";
+import { toast } from "sonner";
 
 interface AddToCartBtnProps {
   onClick?: () => void;
@@ -21,9 +23,25 @@ export const AddToCartBtn = ({
   className = "",
 }: AddToCartBtnProps) => {
   const { user } = useAuth();
-  const { cart } = useCart();
-  const { addItemMutation } = useCartActions();
+  const { cart, setCart } = useCart();
   const router = useRouter();
+  const { fetchWithAuth } = useFetch();
+  const queryClient = useQueryClient();
+
+  const addItemMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetchWithAuth(`/cart/${productId}`, { method: "POST" });
+      if (!res?.success)
+        throw new Error(res?.message || "Failed to add product!");
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(res.message);
+      queryClient.invalidateQueries({ queryKey: ["get-cart"] });
+      setCart(res.data?.cart);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   return (
     <Button

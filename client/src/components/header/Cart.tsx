@@ -6,7 +6,7 @@ import React from "react";
 import { Skeleton } from "../ui/skeleton";
 import { LiaCartSolid } from "./CartIcon";
 import { useQuery } from "@tanstack/react-query";
-import { useCart } from "@/hooks/cart/useCart";
+import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Cart = () => {

@@ -27,6 +27,8 @@ export const LatestProducts = () => {
       <div className="py-2 gap-2 grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <Skeleton className="w-full h-72 bg-skeleton"></Skeleton>
         <Skeleton className="w-full h-72 bg-skeleton"></Skeleton>
+        <Skeleton className="w-full h-72 bg-skeleton"></Skeleton>
+        <Skeleton className="w-full h-72 bg-skeleton"></Skeleton>
       </div>
     );
   }

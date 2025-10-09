@@ -211,8 +211,9 @@ export const Filters = () => {
       <div className="w-full md:hidden border-b-1 border-border-default">
         <Drawer>
           <div className="grid grid-cols-2">
-            <DrawerTrigger className="w-full bg-white shadow-none rounded-none cursor-pointer hover:bg-black/10 flex items-center justify-center space-x-1">
-              Filter <Filter className="size-4" />
+            <DrawerTrigger className="w-full bg-white shadow-none rounded-none cursor-pointer hover:bg-black/10 flex items-center justify-center gap-2">
+              <span>Filter</span>
+              <Filter className="size-4" />
             </DrawerTrigger>
             <Button
               className="w-full bg-white shadow-none rounded-none cursor-pointer hover:bg-black/10 border-l border-border-default"

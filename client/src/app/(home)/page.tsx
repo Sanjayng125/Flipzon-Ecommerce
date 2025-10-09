@@ -1,9 +1,10 @@
-import { FeaturedCategories } from "@/components/home/FeaturedCategories";
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import HeroCarousel from "@/components/home/HeroCarousel";
-import { LatestProducts } from "@/components/home/LatestProducts";
-import { MostSoldProducts } from "@/components/home/MostSoldProducts";
+import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { TrendingProducts } from "@/components/home/TrendingProducts";
+import { FeaturedCategories } from "@/components/home/FeaturedCategories";
+import { MostSoldProducts } from "@/components/home/MostSoldProducts";
+import { LatestProducts } from "@/components/home/LatestProducts";
+import { GoToTopBtn } from "@/components/home/GoToTopBtn";
 
 const Page = async () => {
   return (
@@ -12,9 +13,11 @@ const Page = async () => {
 
       <FeaturedProducts />
       <TrendingProducts />
-      <MostSoldProducts />
       <FeaturedCategories />
+      <MostSoldProducts />
       <LatestProducts />
+
+      <GoToTopBtn />
     </div>
   );
 };

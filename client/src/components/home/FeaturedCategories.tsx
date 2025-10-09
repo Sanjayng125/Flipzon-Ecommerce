@@ -27,7 +27,7 @@ export const FeaturedCategories = () => {
     return (
       <div className="w-full flex items-center hide-scrollbar">
         <div className="flex items-center gap-1 py-2">
-          {new Array(10).fill("").map((_, i) => (
+          {new Array(20).fill("").map((_, i) => (
             <Skeleton
               className="w-20 h-20 rounded-full bg-skeleton"
               key={i}

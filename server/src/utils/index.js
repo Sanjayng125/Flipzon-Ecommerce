@@ -24,7 +24,7 @@ export const checkAspectRatio = async (expectedRatio, publicId) => {
 
     const expected = w / h;
 
-    return Math.abs(actualRatio - expected) < 0.01;
+    return Math.abs(actualRatio - expected) < 0.06;
   } catch (err) {
     console.error("Failed to check aspect ratio:", err);
     return false;
