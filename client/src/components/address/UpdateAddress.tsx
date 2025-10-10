@@ -128,7 +128,7 @@ function AddAddressForm({ className, setOpen }: ProfileFormProps) {
       }
     };
 
-    const debounce = setTimeout(fetchCountries, 500);
+    const debounce = setTimeout(fetchCountries, 400);
     return () => clearTimeout(debounce);
   }, [query]);
 

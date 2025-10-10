@@ -12,9 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/useDebounce";
 import useFetch from "@/hooks/useFetch";
 import { useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const SellerProductsPage = () => {
@@ -22,6 +23,7 @@ const SellerProductsPage = () => {
   const [sort, setSort] = useState("latest");
   const [category, setCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
 
@@ -31,10 +33,10 @@ const SellerProductsPage = () => {
     currentPage: number;
     totalPages: number;
   }>({
-    queryKey: ["seller-products", page, sort, category],
+    queryKey: ["seller-products", page, sort, category, debouncedSearchQuery],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `/products/seller/mine?search=${searchQuery}&sort=${sort}&category=${category}&page=${page}&limit=${limit}`
+        `/products/seller/mine?search=${debouncedSearchQuery}&sort=${sort}&category=${category}&page=${page}&limit=${limit}`
       );
       if (res?.success) {
         return res;
@@ -48,9 +50,14 @@ const SellerProductsPage = () => {
     retry: false,
   });
 
+  useEffect(() => {
+    setPage(1);
+  }, [sort, category, debouncedSearchQuery]);
+
   const products = data?.products || [];
   const currentPage = data?.currentPage || page;
   const totalPages = data?.totalPages || page;
+  const totalProducts = data?.totalProducts || 0;
 
   return (
     <div className="w-full p-2">
@@ -58,11 +65,11 @@ const SellerProductsPage = () => {
 
       <div className="w-full border p-2 rounded-lg flex flex-col mt-2">
         <Input
-          placeholder="Search products..."
+          placeholder="Search products by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <div className="w-full flex flex-wrap mt-2 gap-2">
+        <div className="w-full flex flex-wrap items-center mt-2 gap-2">
           <Select value={sort} onValueChange={setSort}>
             <SelectTrigger>
               <SelectValue placeholder="Sort" />
@@ -82,6 +89,10 @@ const SellerProductsPage = () => {
           >
             <SelectItem value="None">All</SelectItem>
           </CategorySelector>
+
+          <p className="text-sm text-gray-500">
+            Total Products: {totalProducts}
+          </p>
         </div>
       </div>
 

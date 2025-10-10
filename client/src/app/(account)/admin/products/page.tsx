@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/useDebounce";
 import useFetch from "@/hooks/useFetch";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -23,6 +24,7 @@ const AdminProductsPage = () => {
   const [featured, setFeatured] = useState(false);
   const [category, setCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
 
@@ -32,10 +34,17 @@ const AdminProductsPage = () => {
     currentPage: number;
     totalPages: number;
   }>({
-    queryKey: ["admin-products", page, sort, category],
+    queryKey: [
+      "admin-products",
+      page,
+      sort,
+      category,
+      featured,
+      debouncedSearchQuery,
+    ],
     queryFn: async () => {
       const res = await api(
-        `/products?outofstock=true&search=${searchQuery.trim()}&sort=${sort}&category=${category}&page=${page}&limit=${limit}&featured=${featured}`
+        `/products?outofstock=true&q=${debouncedSearchQuery}&sort=${sort}&category=${category}&page=${page}&limit=${limit}&featured=${featured}`
       );
       if (res?.success) {
         return res;
@@ -50,26 +59,13 @@ const AdminProductsPage = () => {
   });
 
   useEffect(() => {
-    if (sort || category || category === "") {
-      refetch();
-    }
-  }, [sort, category, featured, refetch]);
-
-  useEffect(() => {
-    setSort("latest");
-    setCategory("");
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.length >= 2 || searchQuery.length === 0) {
-        refetch();
-      }
-    }, 700);
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery, refetch]);
+    setPage(1);
+  }, [sort, category, featured, debouncedSearchQuery]);
 
   const products = data?.products || [];
   const currentPage = data?.currentPage || page;
   const totalPages = data?.totalPages || page;
+  const totalProducts = data?.totalProducts || 0;
 
   return (
     <div className="w-full p-2">
@@ -77,11 +73,11 @@ const AdminProductsPage = () => {
 
       <div className="w-full border p-2 rounded-lg flex flex-col mt-2">
         <Input
-          placeholder="Search products..."
+          placeholder="Search products by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <div className="w-full flex flex-wrap mt-2 gap-2">
+        <div className="w-full flex flex-wrap items-center mt-2 gap-2">
           <Select value={sort} onValueChange={setSort}>
             <SelectTrigger>
               <SelectValue placeholder="Sort" />
@@ -114,6 +110,10 @@ const AdminProductsPage = () => {
               <SelectItem value="false">Only Featured: No</SelectItem>
             </SelectContent>
           </Select>
+
+          <p className="text-sm text-gray-500">
+            Total Products: {totalProducts}
+          </p>
         </div>
       </div>
 

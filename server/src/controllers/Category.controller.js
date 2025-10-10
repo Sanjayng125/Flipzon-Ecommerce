@@ -34,6 +34,7 @@ export const getAllCategories = async (req, res) => {
       limit = Infinity,
       sort,
       showInCategoryBar,
+      featured,
     } = req.query;
 
     let sortOption = {
@@ -52,14 +53,20 @@ export const getAllCategories = async (req, res) => {
 
     if (showInCategoryBar && showInCategoryBar === "true") {
       filter.showInCategoryBar = true;
-      sortOption = {
-        updatedAt: -1,
-      };
-      if (sort && sort === "oldest") {
+      if (!featured || featured !== "true") {
         sortOption = {
-          updatedAt: 1,
+          updatedAt: -1,
         };
+        if (sort && sort === "oldest") {
+          sortOption = {
+            updatedAt: 1,
+          };
+        }
       }
+    }
+
+    if (featured && (featured === "true" || featured === true)) {
+      filter.isFeatured = true;
     }
 
     const categories = await Category.find(filter)

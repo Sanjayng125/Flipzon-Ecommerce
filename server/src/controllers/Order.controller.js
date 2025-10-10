@@ -776,6 +776,7 @@ export const getAllOrders = async (req, res) => {
 
     if (search) {
       matchStage.$or = [
+        { "user.name": { $regex: search, $options: "i" } },
         { "user.email": { $regex: search, $options: "i" } },
         { "user.phone": { $regex: search, $options: "i" } },
       ];

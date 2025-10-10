@@ -83,11 +83,11 @@ export const productSchema = z.object({
     name: z
         .string()
         .min(5, { message: "Product name must be at least 5 characters long." })
-        .max(200, { message: "Product name cannot exceed 200 characters." }),
+        .max(350, { message: "Product name cannot exceed 350 characters." }),
     description: z
         .string()
         .min(10, { message: "Description must be at least 10 characters long." })
-        .max(2500, { message: "Description cannot exceed 2500 characters." }),
+        .max(3000, { message: "Description cannot exceed 3000 characters." }),
     price: z
         .number({ invalid_type_error: "Price must be a number." })
         .positive({ message: "Price must be greater than 0." }),

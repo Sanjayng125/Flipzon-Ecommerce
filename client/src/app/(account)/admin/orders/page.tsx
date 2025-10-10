@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/useDebounce";
 import useFetch from "@/hooks/useFetch";
 import { capatilize, formatDate, getStatusBadgeColor } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -20,15 +21,16 @@ const ORDERS_PER_PAGE = 8;
 
 const AdminOrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [sort, setSort] = useState("latest");
   const { fetchWithAuth } = useFetch();
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin-orders", page, sort],
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-orders", page, sort, debouncedSearchQuery],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `/orders?search=${searchQuery}&sort=${sort}&page=${page}&limit=${ORDERS_PER_PAGE}`
+        `/orders?search=${debouncedSearchQuery}&sort=${sort}&page=${page}&limit=${ORDERS_PER_PAGE}`
       );
       return res;
     },
@@ -40,23 +42,12 @@ const AdminOrdersPage = () => {
 
   useEffect(() => {
     setPage(1);
-    if (sort) refetch();
-  }, [sort, refetch]);
-
-  useEffect(() => {
-    setSort("latest");
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.length >= 2 || searchQuery.length === 0) {
-        setPage(1);
-        refetch();
-      }
-    }, 600);
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery, refetch]);
+  }, [debouncedSearchQuery, sort]);
 
   const orders: Order[] = data?.orders || [];
   const currentPage = data?.currentPage || 1;
   const totalPages = data?.totalPages || 1;
+  const totalOrders = data?.totalOrders || 0;
 
   return (
     <div className="w-full p-2">
@@ -64,19 +55,24 @@ const AdminOrdersPage = () => {
 
       <div className="w-full border p-2 rounded-lg flex flex-col gap-2 my-2">
         <Input
-          placeholder="Search orders..."
+          placeholder="Search orders by customer name/email/phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sort" />
-          </SelectTrigger>
-          <SelectContent className="bg-white w-max">
-            <SelectItem value="latest">Latest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <div className="w-full flex flex-wrap items-center gap-2">
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent className="bg-white w-max">
+              <SelectItem value="latest">Latest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <p className="text-sm text-gray-500">Total Orders: {totalOrders}</p>
+        </div>
       </div>
 
       {isLoading ? (

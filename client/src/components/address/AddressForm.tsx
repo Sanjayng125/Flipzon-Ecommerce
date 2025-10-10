@@ -64,7 +64,7 @@ export function AddressForm({
       }
     };
 
-    const debounce = setTimeout(fetchCountries, 500);
+    const debounce = setTimeout(fetchCountries, 400);
     return () => clearTimeout(debounce);
   }, [query]);
 

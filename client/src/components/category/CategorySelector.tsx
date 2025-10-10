@@ -86,7 +86,7 @@ export function CategorySelector({
   const { api } = useFetch();
 
   const [internalSearch, setInternalSearch] = useState("");
-  const debouncedSearch = useDebounce(internalSearch, 500);
+  const debouncedSearch = useDebounce(internalSearch.trim(), 500);
   const [ref, inView] = useInView();
   const [notInInitCategory, setNotInInitCategory] = useState<Category | null>(
     null

@@ -17,20 +17,22 @@ import { PaginationControls } from "@/components/PaginationControls";
 import { Spinner } from "@/components/Spinner";
 import { DeleteUser } from "@/components/account/DeleteUser";
 import { BanUser } from "@/components/account/BanUser";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const USERS_PER_PAGE = 8;
 
 const AdminUsersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
   const { fetchWithAuth } = useFetch();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin-users", page, sort],
+    queryKey: ["admin-users", page, sort, debouncedSearchQuery],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `/users/get-users?search=${searchQuery}&sort=${sort}&page=${page}&limit=${USERS_PER_PAGE}`
+        `/users/get-users?search=${debouncedSearchQuery}&sort=${sort}&page=${page}&limit=${USERS_PER_PAGE}`
       );
       return res;
     },
@@ -42,23 +44,12 @@ const AdminUsersPage = () => {
 
   useEffect(() => {
     setPage(1);
-    if (sort) refetch();
-  }, [sort, refetch]);
-
-  useEffect(() => {
-    setSort("latest");
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.length >= 2 || searchQuery.length === 0) {
-        setPage(1);
-        refetch();
-      }
-    }, 600);
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery, refetch]);
+  }, [sort, debouncedSearchQuery]);
 
   const users: UserProps[] = data?.users || [];
   const currentPage = data?.currentPage || 1;
   const totalPages = data?.totalPages || 1;
+  const totalUsers = data?.totalUsers || 0;
 
   return (
     <div className="w-full p-2">
@@ -66,19 +57,24 @@ const AdminUsersPage = () => {
 
       <div className="w-full border p-2 rounded-lg flex flex-col gap-2 my-2">
         <Input
-          placeholder="Search users..."
+          placeholder="Search users by name/email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sort" />
-          </SelectTrigger>
-          <SelectContent className="bg-white w-max">
-            <SelectItem value="latest">Latest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <div className="w-full flex flex-wrap items-center gap-2">
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent className="bg-white w-max">
+              <SelectItem value="latest">Latest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <p className="text-sm text-gray-500">Total Users: {totalUsers}</p>
+        </div>
       </div>
 
       {isLoading ? (

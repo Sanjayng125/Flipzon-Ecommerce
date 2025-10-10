@@ -320,7 +320,13 @@ export const CategoryModal = ({
                   (!edit && !form.formState.isValid)
                 }
               >
-                {edit ? "Update" : "Add"}
+                {edit
+                  ? updateCategoryMutation.isPending
+                    ? "Updating..."
+                    : "Update"
+                  : addCategoryMutation.isPending
+                  ? "Adding..."
+                  : "Add"}
               </Button>
             </form>
           </Form>

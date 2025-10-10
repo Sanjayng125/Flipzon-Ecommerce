@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/useDebounce";
 import useFetch from "@/hooks/useFetch";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -19,20 +20,21 @@ const ORDERS_PER_PAGE = 8;
 
 const SellerOrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [sort, setSort] = useState("oldest");
   const { fetchWithAuth } = useFetch();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("pending");
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["seller-orders", page, sort, searchQuery, status],
+    queryKey: ["seller-orders", page, sort, debouncedSearchQuery, status],
     queryFn: async () => {
       const url =
         status === "all"
           ? `/orders/seller/my-orders`
           : "/orders/seller/my-active-orders";
       const res = await fetchWithAuth(
-        `${url}?search=${searchQuery}&sort=${sort}&page=${page}&limit=${ORDERS_PER_PAGE}`
+        `${url}?search=${debouncedSearchQuery}&sort=${sort}&page=${page}&limit=${ORDERS_PER_PAGE}`
       );
       return res;
     },
@@ -44,8 +46,7 @@ const SellerOrdersPage = () => {
 
   useEffect(() => {
     setPage(1);
-    if (sort || status) refetch();
-  }, [sort, status, refetch]);
+  }, [sort, status, debouncedSearchQuery]);
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -87,7 +88,7 @@ const SellerOrdersPage = () => {
           </Select>
         </div>
         <Input
-          placeholder="Search by customer email or phone..."
+          placeholder="Search by customer name/email/phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />

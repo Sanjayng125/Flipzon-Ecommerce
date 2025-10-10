@@ -47,8 +47,7 @@ export default function AddProductPage() {
 
       const imgsRes = await uploadMultiple(selectedFiles, "products");
       if (imgsRes?.error) {
-        toast.error(imgsRes.error);
-        return;
+        throw new Error(imgsRes.error || "Failed to upload images");
       }
 
       const { urls } = imgsRes;
@@ -82,10 +81,14 @@ export default function AddProductPage() {
         throw new Error(res.message || "Failed to create product");
       }
 
+      return res;
+    },
+    onSuccess: (res) => {
       toast.success("✅ Product created successfully!");
       form.reset();
       setSelectedFiles([]);
-      queryClient.refetchQueries({ queryKey: ["seller-products"] });
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+      queryClient.invalidateQueries({ queryKey: ["get-seller-overview"] });
       if (inputRef.current) inputRef.current.value = "";
     },
     onError: (err) => {

@@ -18,19 +18,30 @@ import {
 } from "@/components/ui/select";
 import { PaginationControls } from "@/components/PaginationControls";
 import { Spinner } from "@/components/Spinner";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const AdminCategoriesPage = () => {
   const { fetchWithAuth } = useFetch();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 500, 3);
   const [sort, setSort] = useState("latest");
+  const [featured, setFeatured] = useState(false);
+  const [showInCategoryBar, setShowInCategoryBar] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin-categories", page, sort],
+    queryKey: [
+      "admin-categories",
+      page,
+      sort,
+      featured,
+      showInCategoryBar,
+      debouncedSearchQuery,
+    ],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `/categories?search=${searchQuery}&sort=${sort}&page=${page}&limit=${limit}`
+        `/categories?search=${debouncedSearchQuery}&sort=${sort}&featured=${featured}&showInCategoryBar=${showInCategoryBar}&page=${page}&limit=${limit}`
       );
       return res;
     },
@@ -59,26 +70,13 @@ const AdminCategoriesPage = () => {
   });
 
   useEffect(() => {
-    if (sort) {
-      setPage(1);
-      refetch();
-    }
-  }, [sort, refetch]);
-
-  useEffect(() => {
-    setSort("latest");
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.length >= 3 || searchQuery.length === 0) {
-        refetch();
-      }
-    }, 700);
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery, refetch]);
+    setPage(1);
+  }, [featured, showInCategoryBar, debouncedSearchQuery, sort]);
 
   const categories: Category[] = data?.categories || [];
   const currentPage = data?.currentPage || page;
   const totalPages = data?.totalPages || page;
+  const totalCategories = data?.totalCategories || 0;
 
   return (
     <div className="w-full p-2">
@@ -86,11 +84,11 @@ const AdminCategoriesPage = () => {
 
       <div className="w-full border p-2 rounded-lg flex flex-col my-2">
         <Input
-          placeholder="Search categories..."
+          placeholder="Search categories by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <div className="w-full flex flex-wrap mt-2 gap-2">
+        <div className="w-full flex flex-wrap items-center mt-2 gap-2">
           <Select value={sort} onValueChange={setSort}>
             <SelectTrigger>
               <SelectValue placeholder="Sort" />
@@ -100,7 +98,40 @@ const AdminCategoriesPage = () => {
               <SelectItem value="oldest">Oldest</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select
+            value={showInCategoryBar ? "true" : "false"}
+            onValueChange={(val) =>
+              setShowInCategoryBar(val === "true" ? true : false)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="In Category Bar" />
+            </SelectTrigger>
+            <SelectContent className="bg-white w-max">
+              <SelectItem value="true">In Category Bar: Yes</SelectItem>
+              <SelectItem value="false">In Category Bar: No</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={featured ? "true" : "false"}
+            onValueChange={(val) => setFeatured(val === "true" ? true : false)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Featured" />
+            </SelectTrigger>
+            <SelectContent className="bg-white w-max">
+              <SelectItem value="true">Featured: Yes</SelectItem>
+              <SelectItem value="false">Featured: No</SelectItem>
+            </SelectContent>
+          </Select>
+
           <CategoryModal onSuccess={refetch} />
+
+          <p className="text-sm text-gray-500">
+            Total Categories: {totalCategories}
+          </p>
         </div>
       </div>
 

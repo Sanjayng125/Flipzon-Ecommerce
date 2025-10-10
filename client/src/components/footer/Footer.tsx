@@ -1,3 +1,5 @@
+import { ExternalLink } from "lucide-react";
+
 const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white py-10">
@@ -83,7 +85,18 @@ const Footer = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between text-sm text-gray-400">
+        <div className="border-t border-gray-700 mt-8 mb-4 pt-6 flex flex-col md:flex-row justify-between text-sm text-gray-400">
+          <p className="flex items-center gap-1 text-white">
+            <span>About The Developer:</span>
+            <a
+              href="https://theunknowndev-sng.vercel.app/"
+              className="underline hover:text-blue-500 flex items-center gap-0.5"
+              target="_blank"
+            >
+              <span>TheUnknownDev</span>
+              <ExternalLink className="size-4" />
+            </a>
+          </p>
           <p>© {new Date().getFullYear()} Flipzon. All rights reserved.</p>
           <p>Made with ❤️ for shopping lovers.</p>
         </div>
