@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { FreeMode, Navigation, Thumbs } from "swiper/modules";
+import { FreeMode, Navigation, Thumbs, Zoom } from "swiper/modules";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight } from "lucide-react"; // 👈 Lucide icons
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import "swiper/css";
 import "swiper/css/free-mode";
 import "swiper/css/navigation";
 import "swiper/css/thumbs";
+import "swiper/css/zoom";
 
 interface ProductCarouselProps {
   images: { url: string }[];
@@ -32,23 +33,24 @@ export const ProductCarousel = ({ images }: ProductCarouselProps) => {
       <Swiper
         loop
         spaceBetween={10}
+        zoom={{ maxRatio: 3 }}
         navigation={{
           prevEl: ".custom-prev",
           nextEl: ".custom-next",
         }}
         thumbs={{ swiper: thumbsSwiper }}
-        modules={[FreeMode, Navigation, Thumbs]}
+        modules={[FreeMode, Navigation, Thumbs, Zoom]}
         className="w-full"
       >
         {images.map((img, idx) => (
           <SwiperSlide key={idx}>
-            <div className="relative w-full h-[400px] flex items-center justify-center">
+            <div className="swiper-zoom-container flex items-center justify-center !h-[400px] bg-white">
               <Image
                 src={img.url}
                 alt={`product-${idx}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 500px"
-                className="object-contain"
+                width={500}
+                height={400}
+                className="object-contain max-h-[400px] w-auto h-auto"
               />
             </div>
           </SwiperSlide>
