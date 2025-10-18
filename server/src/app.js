@@ -21,13 +21,9 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Router import
+// Router
 import Router from "./routes/index.router.js";
 
 app.use("/api", Router);
-
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
 
 export default app;

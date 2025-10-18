@@ -17,8 +17,16 @@ import CloudinaryRoutes from "./Cloudinary.routes.js";
 import HeroRoutes from "./Hero.routes.js";
 import OverviewRoutes from "./Overview.routes.js";
 
-router.get("/", (req, res) => {
-  return res.status(200).json({ message: "Server is up and running 🚀✅" });
+router.get("/health", (req, res) => {
+  return res.status(200).json({
+    status: "ok",
+    uptime: {
+      hours: Math.floor(process.uptime() / 60 / 60),
+      minutes: Math.floor(process.uptime() / 60),
+      seconds: process.uptime(),
+    },
+    timestamp: Date.now(),
+  });
 });
 
 router.use("/users", UserRoutes);
