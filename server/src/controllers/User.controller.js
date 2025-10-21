@@ -178,7 +178,7 @@ export const signup = async (req, res) => {
     }
 
     // Create OTP entry
-    // Remove this if block too, when you verify your domain at Resend.
+    // Remove this if condition too, when you verify your domain at Resend.
     if (!newUser.isVerified) {
       const newOtp = await Otp.create({ email, otp: generatedOtp });
       if (!newOtp) {

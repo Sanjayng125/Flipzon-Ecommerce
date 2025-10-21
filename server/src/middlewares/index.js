@@ -4,7 +4,17 @@ import mongoose from "mongoose";
 
 export const Auth = async (req, res, next) => {
   try {
-    const token = req?.headers?.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication invalid",
+        login: true,
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({
@@ -14,53 +24,56 @@ export const Auth = async (req, res, next) => {
       });
     }
 
+    let decoded = null;
+
     try {
-      const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-
-      if (!decoded) {
-        return res.status(403).json({
-          success: false,
-          message: "Forbidden: Session expired",
-          login: true,
-        });
-      }
-
-      let user = null;
-
-      const cached = await redis.get(`user:${decoded._id}`);
-      if (!cached) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized: Session expired",
-          login: true,
-        });
-      }
-
-      const parsed = JSON.parse(cached);
-      user = { ...parsed, _id: new mongoose.Types.ObjectId(`${parsed._id}`) };
-
-      if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Account not found", login: true });
-      }
-
-      req.user = user;
-      return next();
+      decoded = await jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
       if (error?.name === "TokenExpiredError") {
         return res.status(401).json({
           success: false,
-          message: "Unauthorized: Session expired",
+          message: "Session expired",
           login: true,
         });
       }
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
-        message: "Forbidden: Invalid token",
+        message: "Invalid token",
         login: true,
       });
     }
+
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired",
+        login: true,
+      });
+    }
+
+    let user = null;
+
+    const cached = await redis.get(`user:${decoded._id}`);
+    if (!cached) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired",
+        login: true,
+      });
+    }
+
+    const parsed = JSON.parse(cached);
+    user = { ...parsed, _id: new mongoose.Types.ObjectId(`${parsed._id}`) };
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Account not found", login: true });
+    }
+
+    req.user = user;
+
+    return next();
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
