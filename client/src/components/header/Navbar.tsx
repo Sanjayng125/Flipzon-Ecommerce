@@ -9,6 +9,7 @@ import { Category } from "./Category";
 import { VerticalSeperator } from "../VerticalSeperator";
 import { Delivery } from "./Delivery";
 import { useAuth } from "@/hooks/useAuth";
+import TopNotice from "./TopNotice";
 
 export const Navbar = () => {
   const { user } = useAuth();
@@ -18,48 +19,51 @@ export const Navbar = () => {
   return (
     <nav className="flex flex-col justify-between bg-white text-[#1E293B] shadow-md">
       {/* Top links */}
-      <div className="flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-[#f5f5f5] mb-2 sm:mb-4">
-        <p className="text-[#494c52] max-[420px]:text-sm">
-          Welcome to Flipzon!
-        </p>
-        <div className="flex items-center gap-2">
-          {user && (
-            <>
-              <Link
-                href={
-                  user?.role === "admin"
-                    ? "/admin/overview"
-                    : user?.role === "seller"
-                    ? "/seller/overview"
-                    : "/profile"
-                }
-              >
-                <span className="flex items-center gap-1 hover:underline text-[#494c52]">
-                  <User className="size-5 text-sky-800" />
-                  My account
+      <div className="flex flex-col">
+        <TopNotice />
+        <div className="flex items-center justify-between px-2 py-1 md:px-4 md:py-2 bg-[#f5f5f5] mb-2 sm:mb-4">
+          <p className="text-[#494c52] max-[420px]:text-sm">
+            Welcome to Flipzon!
+          </p>
+          <div className="flex items-center gap-2">
+            {user && (
+              <>
+                <Link
+                  href={
+                    user?.role === "admin"
+                      ? "/admin/overview"
+                      : user?.role === "seller"
+                      ? "/seller/overview"
+                      : "/profile"
+                  }
+                >
+                  <span className="flex items-center gap-1 hover:underline text-[#494c52]">
+                    <User className="size-5 text-sky-800" />
+                    My account
+                  </span>
+                </Link>
+                {(!user || isUser) && (
+                  <>
+                    <VerticalSeperator width={2} />
+                    <Link href={"/wishlist"}>
+                      <span className="flex items-center gap-1 hover:underline text-[#494c52]">
+                        <Heart className="size-5 text-sky-800" />
+                        Wishlist
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
+            {!user && (
+              <Link href={"/login"}>
+                <span className="flex items-center gap-1 hover:underline text-[#494c52] font-semibold">
+                  Login
+                  <LogIn className="size-5 text-sky-800" />
                 </span>
               </Link>
-              {(!user || isUser) && (
-                <>
-                  <VerticalSeperator width={2} />
-                  <Link href={"/wishlist"}>
-                    <span className="flex items-center gap-1 hover:underline text-[#494c52]">
-                      <Heart className="size-5 text-sky-800" />
-                      Wishlist
-                    </span>
-                  </Link>
-                </>
-              )}
-            </>
-          )}
-          {!user && (
-            <Link href={"/login"}>
-              <span className="flex items-center gap-1 hover:underline text-[#494c52] font-semibold">
-                Login
-                <LogIn className="size-5 text-sky-800" />
-              </span>
-            </Link>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
