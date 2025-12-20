@@ -46,7 +46,7 @@ export const DeleteAccountModal = ({
       return res;
     },
     onSuccess: (res) => {
-      toast.success(res?.message || "Review deleted");
+      toast.success(res?.message || "Account deleted");
       clearAuth();
       clearAddress();
       clearCart();
