@@ -170,7 +170,7 @@ const CartPage = () => {
     <div className="flex justify-center p-2">
       {(!cart || !cart?.items?.length) && (
         <div className="w-full">
-          <h2 className="text-center">Your cart is empty.</h2>
+          <h2 className="text-center">Your cart is empty</h2>
         </div>
       )}
 

@@ -43,6 +43,9 @@ export const AddToCartBtn = ({
     onError: (err: any) => toast.error(err.message),
   });
 
+  const isAddingToCart =
+    addItemMutation.isPending && addItemMutation.variables === productId;
+
   return (
     <Button
       className={`text-white bg-sky-800 hover:bg-sky-900 cursor-pointer ${className}`}
@@ -56,11 +59,9 @@ export const AddToCartBtn = ({
         addItemMutation.mutate(productId);
         onClick();
       }}
-      disabled={
-        addItemMutation.isPending || (user && user?.role !== "user") || disabled
-      }
+      disabled={isAddingToCart || (user && user?.role !== "user") || disabled}
     >
-      {addItemMutation.isPending
+      {isAddingToCart
         ? "Adding..."
         : cart?.items.some((i) => i.product._id === productId)
         ? "Go to Cart"

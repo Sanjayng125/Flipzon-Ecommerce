@@ -1,19 +1,21 @@
 import cloudinary from "../utils/cloudinary.js";
-import { deleteImage, deleteManyImage } from "../utils/index.js";
+import { deleteManyImage } from "../utils/index.js";
 
 export const getSign = async (req, res) => {
   try {
     const { folder } = req.body;
 
-    const baseFolder = process.env.CLOUDINARY_BASE_FOLDER;
+    const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+    const CLOUDINARY_UPLOAD_API = process.env.CLOUDINARY_UPLOAD_API;
+    const BASE_FOLDER = process.env.CLOUDINARY_BASE_FOLDER;
 
-    if (!baseFolder) {
+    if (!CLOUDINARY_API_KEY || !CLOUDINARY_UPLOAD_API || !BASE_FOLDER) {
       return res
         .status(500)
-        .json({ success: false, message: "Something went wrong!" });
+        .json({ success: false, message: "Server config error!" });
     }
 
-    const finalFolder = `${baseFolder}/${folder}`;
+    const finalFolder = `${BASE_FOLDER}/${folder}`;
 
     const timestamp = Math.round(new Date().getTime() / 1000);
 
@@ -22,9 +24,14 @@ export const getSign = async (req, res) => {
       process.env.CLOUDINARY_API_SECRET
     );
 
-    return res
-      .status(200)
-      .json({ success: true, signature, timestamp, folder: finalFolder });
+    return res.status(200).json({
+      success: true,
+      signature,
+      timestamp,
+      folder: finalFolder,
+      cloudinaryApiKey: CLOUDINARY_API_KEY,
+      cloudinaryUploadApi: CLOUDINARY_UPLOAD_API,
+    });
   } catch (error) {
     console.log(error);
     return res
